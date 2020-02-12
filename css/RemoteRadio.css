@@ -1,0 +1,452 @@
+/**
+ * P2PStudio.css
+ *
+ *
+ *
+ */
+ .close {
+  display: none;
+ }
+ .callerDiv {
+  border: 1px solid black;
+  border-radius: 5px;
+  margin:auto;
+  font-weight: bold;
+ }
+ #recordDiv tr {
+  margin: auto;
+  text-align: center;
+ }
+ #recordButton {
+  stroke: red;
+  fill: 100px;
+ }
+ #StudioLogo {
+  font-weight: bold;
+  font-size: 24pt;
+ }
+#main_menu {
+  visibility: hidden;
+  margin: auto;
+  min-width: 600px; /* Set a default minimum width */
+  margin-left: -300px; /* Divide value of min-width by 2 */
+  background-color: transparent; /* Black background color */
+  text-align: center; /* Centered text */
+    padding: 12px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%;      /* Center the snackbar */
+    top: 50px;   /* 30px from the bottom */
+
+}
+#launchP2PStudioDiv {
+  text-align: center; /* Centered text */
+  border: solid black;
+  background-color: white;
+    border-radius: 25px; /* Rounded borders */
+    padding: 6px; /* Padding */
+}
+#launchCallInDiv {
+  background-color: white;
+  margin: auto;
+  text-align: center; /* Centered text */
+  border: solid black;
+    border-radius: 25px; /* Rounded borders */
+    padding: 6px; /* Padding */
+}
+#P2PStudioDiv {
+  visibility: hidden;
+  margin: auto;
+  min-width: 600px; /* Set a default minimum width */
+  margin-left: -300px; /* Divide value of min-width by 2 */
+  background-color: #ffffff; /* Black background color */
+  text-align: center; /* Centered text */
+  border: solid black;
+    border-radius: 5px; /* Rounded borders */
+    padding: 16px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%;      /* Center the snackbar */
+    top: 80px;   /* 30px from the bottom */
+}
+#CallInDiv {
+  visibility: hidden;
+  margin: auto;
+  min-width: 600px; /* Set a default minimum width */
+  margin-left: -300px; /* Divide value of min-width by 2 */
+  background-color: #ffffff; /* Black background color */
+  text-align: center; /* Centered text */
+  border: solid black;
+    border-radius: 5px; /* Rounded borders */
+    padding: 16px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%;      /* Center the snackbar */
+    top: 80px;   /* 30px from the bottom */
+}
+#callButton {
+    cursor: pointer;
+}
+input[type="image"]:disabled {
+    cursor: default;
+}
+ /* list of connected peers */
+#connectedPeersList {
+  list-style-type: none;
+}
+/* switch styling */
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {display:none;}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+/* end of switch styling */
+/* html elements */
+
+body {
+  font-family: Calibri, Verdana, Sans;
+  width: 90%;
+  margin: auto;
+}
+audio {
+  width: 98%;
+}
+/*
+ * Tells the user any errors
+ */
+ #studioHeaderDiv {
+  border: 1px solid black;
+ }
+ 
+ #onAirDiv {
+  border: double black 5px;
+  border-radius: 5px;
+  font-size: 24pt;
+  font-weight: bold;
+  cursor: pointer;
+  width: 50%;
+  margin:auto;
+  color: grey;
+ }
+
+#errorReportDiv {
+    font-size: small;
+    color: red;
+    visibility: hidden;
+    font-weight: bold;
+    margin: auto;
+    min-width: 250px; /* Set a default minimum width */
+    margin-left: -125px; /* Divide value of min-width by 2 */
+    background-color: #333; /* Black background color */
+    text-align: center; /* Centered text */
+    border-radius: 5px; /* Rounded borders */
+    padding: 16px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 100; /* Add a z-index if needed */
+    left: 50%; /* Center the snackbar */
+    bottom: 30px; /* 30px from the bottom */
+}
+#errorReportDiv.show {
+      visibility: visible; /* Show the snackbar */
+
+/* Add animation: Take 0.5 seconds to fade in and out the snackbar. 
+However, delay the fade out process for 2.5 seconds */
+    -webkit-animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+    animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+}
+#statusReportDiv {
+    text-align: center;
+    margin: auto;
+    visibility: hidden;     /* Hidden by default. Visible on click */
+    min-width: 250px;       /* Set a default minimum width */
+    margin-left: -125px;    /* Divide value of min-width by 2 */
+    background-color: #333; /* Black background color */
+    color: #fff;            /* White text color */
+    text-align: center;     /* Centered text */
+    border-radius: 5px;     /* Rounded borders */
+    padding: 16px;          /* Padding */
+    position: fixed;        /* Sit on top of the screen */
+    z-index: 1;             /* Add a z-index if needed */
+    left: 50%;              /* Center the snackbar */
+    bottom: 30px;           /* 30px from the bottom */
+
+    font-size: small;
+    font-weight: bold;
+}
+#statusReportDiv.show {
+      visibility: visible; /* Show the snackbar */
+
+/* Add animation: Take 0.5 seconds to fade in and out the snackbar. 
+However, delay the fade out process for 2.5 seconds */
+    -webkit-animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+    animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+}
+/* Animations to fade the snackbar in and out */
+@-webkit-keyframes fadeinmove {
+    from {bottom: 0; opacity: 0;} 
+    to {bottom: 30px; opacity: 1;}
+}
+
+@keyframes fadeinmove {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 30px; opacity: 1;}
+}
+
+@-webkit-keyframes fadeoutmove {
+    from {bottom: 30px; opacity: 1;} 
+    to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeoutmove {
+    from {bottom: 30px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+}
+/* chat box */
+#chatDiv {
+  border: 1px solid silver;
+  font-size: smaller;
+  width: 349px;
+  height: 399px;
+  background-color: white;
+  overflow-y: scroll;
+  max-width: 330px;
+  max-height: 200px;
+}
+#chatInputText {
+  width: 326px;
+}
+.outgoingText {
+  color: blue;
+  animation: fadein 1s;
+  -webkit-animation: fadein 1s; /* Safari, Chrome and Opera > 12.1 */
+  -moz-animation: fadein 1s; /* Firefox < 16 */
+  -ms-animation: fadein 1s; /* Internet Explorer */
+  -o-animation: fadein 1s; /* Opera < 12.1 */
+ }
+.incomingText {
+  color: red;
+  animation: fadein 1s;
+    -webkit-animation: fadein 1s; /* Safari, Chrome and Opera > 12.1 */
+       -moz-animation: fadein 1s; /* Firefox < 16 */
+        -ms-animation: fadein 1s; /* Internet Explorer */
+         -o-animation: fadein 1s; /* Opera < 12.1 */
+}
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Firefox < 16 */
+@-moz-keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Safari, Chrome and Opera > 12.1 */
+@-webkit-keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+/* end chat box */
+
+/*
+ * Mic image
+ */
+#MicImg {
+ padding: 2px;
+}
+#MicImg:hover {
+ cursor: pointer;
+}
+#SpeakerImg{
+
+}
+#SpeakerImg:hover {
+  cursor: pointer;
+}
+/*
+ * column divides the page
+ */ 
+.column {
+    float: left;
+/*    width: 20%;
+    height: 80%;
+    */
+    width: 100%;
+    padding: 2px;
+    margin-right: 6px;
+}
+/*
+ * column2 is the mixer
+ */
+.column2 {
+  float: left;
+/*  height: 80%;
+  width: 55%;
+  */
+  padding: 2px;
+}
+div.headerDiv {
+  position: fixed;
+  margin:auto;
+  top: -10;
+  width: 100%;
+  left: 0;
+}
+/* 
+ * Header at the top of a column
+ */
+p.header {
+  background-color: green;
+  font-weight: bold;
+  padding: 0;
+  margin: 0;
+  padding-bottom: 10px;
+  border: 0;
+}
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.slider2 {
+}
+
+/*
+ * the help link on the top right
+ */
+#helplink {
+	text-align: right;
+}
+/*
+ * Button to save configuration
+ */
+#save_button {
+  text-align: right;
+}
+
+/*
+ * P2PStudio logo
+ */
+h1#logo {
+  font-family: Rockwell;
+  background-color: #80c683;
+  border-top: solid #509455 20px;
+  width: 100%;
+  top:0;
+  margin-auto;
+  position: fixed;
+  left:0;
+}
+div#InputDiv {
+  border: 2px solid black;
+  border-radius: 10px;
+}
+div#InputDiv select {
+  /* width: 98%;
+  */
+}
+div#OutputDiv select {
+  /* width: 98%;
+  */
+}
+
+#MediaDevicesList {
+}
+#Bitrate {
+  float: left;
+}
+#OutputDiv {
+  border: 2px solid black;
+  border-radius: 10px;
+}
+#Mixer {
+  border: 2px solid black;
+  border-radius: 10px;
+}
+
+#content {
+ visibility:hidden; opacity: 0; transition: opacity 2s linear;
+}
+/*
+ * Warning message
+ */
+#loading {
+  background-color: #e0e0e0;
+  width: 80%;
+  left: 50%;
+  top: 50%;
+  position: fixed;
+  -webkit-transform: translateX(-50%) translateY(-50%);
+  -moz-transform: translateX(-50%) translateY(-50%);
+  -ms-transform: translateX(-50%) translateY(-50%);
+  transform: translateX(-50%) translateY(-50%);
+	padding: 20px;
+	border-radius: 10px;
+	text-align: center;
+	opacity: 1;
+	visibility: visible;
+	transition: visibility 0s linear 0.5s, opacity 0.5s linear;
+}
+/* 
+ * Copyright & contact details...
+ */
+#footer {
+  font-size: smaller;
+  text-align: center;
+}
