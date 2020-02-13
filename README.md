@@ -11,7 +11,7 @@ Remote Radio was created by Jerry Padfield as part of PhD research at [Falmouth 
 
 Remote Radio uses [peer.js](http://peer.js) , [feather icons](http://) (MIT license), [volume meter]() by Chris Wilson under the MIT license.
 
-Remote Radio is released under the [Creative Commons License 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+Remote Radio is released under the MIT License (see below).
 
 ## Licenses
 ### MIT
@@ -36,6 +36,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-### Creative Commons
-
