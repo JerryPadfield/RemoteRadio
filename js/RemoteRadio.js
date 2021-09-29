@@ -1,149 +1,1206 @@
-/**
- * Remote Radio -- An Open Source peer to peer audio streaming solution
- * for community radio stations
- * https://github.com/JerryPadfield/P2PStudio
+"use strict";
+/*
+ * Remote Radio
+ * MIT License 2021
  *
- * Version: 0.01
+ */
+ // TODO
+ // IMPORTANT
+ // Make work as a server so can use to connect any two computers rather than just to server
+ //
+ //
+ // Reduce gain on songs
+ //
+const debugLevel = "0";
+const SERVER = "p2pstudio.herokuapp.com";
+const STUDIO_ID = "SourceFMStudio";
+var   remoteStudioID = STUDIO_ID;
+const NUM_SAMPLERS = 6;
+const CALL_IN_NUM_SAMPLERS = 2;
+const DEFAULT_SAMPLE_RATE = 48000;
+const RRMode = {
+  STUDIO: "studio",
+  CALL_IN: "call_in",          // list of peers wanting to chat
+  REMOTE_GUEST: "remote",      // guest has received a link
+  LINK: "link",               // OB mode
+  SERVER: "server",           // studio server listening for connections...
+};
+var remoteRadioMode = RRMode.STUDIO;  // set to SERVER to run page as a server...
+
+// time to leave before attempting reconnect if disconnected...
+const reconnectInterval = 30000;
+///
+///
+/// Commands to communicate between peers
+const RRCommand = {
+  TALKBACK:     "_____talkback_____",
+  SONG_ENDING:  "_____song_ending_____", 
+  LEAVE:        "_____byebye_____", 
+};
+var studioConnection = null;  // connection to studio
+var connectedPeers = [];      // list of connected peers
+var themicMediaStream = null; // media stream from mic input
+var outputBuss = null;        // send all audio through here before speaker
+var micToSpeakerCheckBox;
+var accessedAudio = false;    // have we got permission from getUserMedia
+var theAudioContext;          // global audio context used by everything
+var mixedAudio = null;        // holds the merged audio
+var micMediaStream;           // audio from user's mic
+var mic;                      // RRMicrophone object
+var chatWindow, chatButton;
+// Two RRPlayers act as decks
+var playerLeft;
+var playerRight;
+var samplers = [];            // Array of RRSamplers
+var crossfader;               // RRCrossfader
+var meter;
+var remoteConnections = [];   // guest remote presenters
+var outgoingRemoteStreamBuss = null;        // audio buss to send to remote computer connections = mic + samplers (not incoming streams)
+var talkbackBuss = null;      // audio buss to send low bitrate audio = mic only
+var talkbackButton;
+var talkingBack = false;      // whether or not we're in talkback mode
+var rrModeSwitch = null;
+var remoteBussGain;
+var incomingRemoteStreamGain;
+var audioIncomingStream;
+var remotePeerID;             // id of the peer to connect to - TODO change this
+
+var constraints = {
+    audio: {
+         sampleRate: DEFAULT_SAMPLE_RATE,
+         sampleSize: 16,
+         channelCount: 2,         // try and get stereo
+         echoCancellation: false,
+         noiseSuppression: false,
+         autoGainControl: false,
+        // mandatory:{googAutoGainControl: false}
+    },
+    video: false
+};
+
+var sendMicToSpeakers = false;  // output mic input to default audio device
+// RRRecorder object and audio buss to send to it
+var theRecorder;
+var recorderBuss;
+//var errorDiv;
+// if a dialog box is open - useful to stop key shortcuts
+var dialogOpened = false;
+var peer, peerHandler;          // Peer from Peer.js, and PeerHandler object
+
+const ConnectionStatus = {
+  DISCONNECTED: 0, // no connection to anything
+  PEER: 1,         // we have a peer object
+  CONNECTING: 2,   // trying to connect
+  CONNECTED: 3,    // connected to remote computer
+};
+var studioConnectionStatus = ConnectionStatus.DISCONNECTED;
+
+//
+// HTML Elements
+//
+var statusReportDiv = null;
+var isConnected = false;
+var studioConnectionStatusDiv = null;
+var connectionSettingsButton = null;
+var outputSettingsButton = null;
+var guestSettingsButton = null;
+var speakerSelect = null;
+var audioInputSelection;        // select menu with audio input devices
+var recordingSettingsButton = null;
+var chatClose=null;
+var chatSend;
+var chatDiv;
+var chatToSendText = null;
+
+/*
+ * Utility functions...
+ */
+// turn seconds into "HH:MM:SS" string
+function createHMS(t) {
+  if (t == "Infinity") {
+    return "--:--:--";
+  }
+  return new Date(t*1000).toISOString().substr(11, 8);
+}
+// Report errors
+function RRError(e) {
+  console.error("Remote Radio: " + e);
+ // console.trace(e);
+}
+// For debugging purposes
+function RRDebug(str) {
+  console.debug("Remote Radio: " + str);
+ // console.trace();
+}
+// remove html from text to stop chat interface being problematic
+function stripHTML(html){
+   let doc = new DOMParser().parseFromString(html, 'text/html');
+   return doc.body.textContent || "";
+}
+/*
+function  dbToGain(db) {
+  return Math.exp(db*Math.log(10.0)/20.0);
+}
+*/
+// work around Chrome to maintain connection to server
+var resumeAudio = function() {
+  if (typeof theAudioContext == "undefined" || theAudioContext == null) {return;}
+  if (theAudioContext.state == "suspended") { theAudioContext.resume(); }
+  document.removeEventListener("click", resumeAudio);
+};
+/*
  *
- * Uses peer.js
- * Relies on config.js loading configuration
  *
- * Released under Creative Commons license
  */
 //
-// TODO list:
+// Called when we get permission to access audio from end-user
 //
-// Add modes login splash
-//
+function onUserMediaSuccess(s) {
+  // notSupported.style.visibility = "hidden";
+  notSupported.classList.add("byebye"); // remove splash screen
+  document.getElementById("RemoteRadio").classList.remove("disabledRR");
+  // get audio devices
+  navigator.mediaDevices.enumerateDevices()
+    .then(gotDevices)
+    .catch((e) => RRError(e));
+  accessedAudio = true;
+  var AudioContext = window.AudioContext || window.webkitAudioContext;
+  theAudioContext = new AudioContext();
+  // set up busses
+  outputBuss = theAudioContext.createGain();
+  outputBuss.connect(theAudioContext.destination);
 
+  mixedAudio = theAudioContext.createMediaStreamDestination();
 
-// Send section -> route input
-// Receive section -> route output
-// Add audio streams
-// allow mic to be routed to other output for pfl chats
-// allow hanging up (keep a record of whether we're in a call)
-// alter phone image depending on state:
-//  no call
-//  in a call
-//  call refused?
-//  can't connect?
-// MULTIPLE CONNECTIONS!!!
-// One-way calls
-// Change audio settings {constraints} and apply before call
-// Change soundcard settings input & output
-// Tidy up GUI:
-//    Audio section
-//    Peer section
-// Implement recording properly:
-//  select stream(s) or combination of to record.
-//  Autorecord on call start?
-//  Buffer - array might get out of hand
-//
-// More robust error handling
-//
-// FIX LIST:
-// Error: iceConnectionState is disconnected, closing connections to ...
-// https://webrtchacks.com/an-intro-to-webrtcs-natfirewall-problem/
-// https://www.nomachine.com/AR07N00894
-// https://stackoverflow.com/questions/40595837/iceconnectionstate-is-disconnected-vp9-coded-is-null-peerserver
-//   Disconnecting when a call is stopped
-//   Add available devices via enumerateDevices rather than getDevices
-//
-"use strict";
-// set to true if script is run on main studio
-const isMainStudio = false;
-const MAIN_STUDIO_ID = "P2PStudioMain";
-////////////////////////////////////////////////////////////////////////////////////
-//
-// Global variables
-//
-//
+  outgoingRemoteStreamBuss = theAudioContext.createMediaStreamDestination();  // remote buss we send to remote guests (switch between PGM and TALK)
+  remoteBussGain = theAudioContext.createGain();
+  remoteBussGain.connect(outgoingRemoteStreamBuss);
 
-// html elements
-var pidDiv, mdilistDiv, mdolistDiv, brDiv, brSlider, micImgDiv, micImgOn, micImgOff;
-var inputSelect, outputSelect, connectedPeersList, chatInputText, chatInputButton, peerInputText, peerInputButton;
-var chatDiv, callButton, sendInviteButton, emailText, contentDiv, loadingDiv, connectionLinkText;
-var browserInfoDiv, errorReportDiv, statusReportDiv, stereoMono, audioLocalDevice, audioMeterLocal, audioMeterCanvasLocal;
-var twoWayCallDiv, recordButton, stopButton, micMuted = false;
-var mainMenuDiv, launchP2PStudioDiv, launchCallInDiv, P2PStudioDiv, CallInDiv, onAirDiv, callListDiv;
-var remoteRadioLogo;
-//
-var isConnected = false;
+  recorderBuss = theAudioContext.createGain();
+  recorderBuss.connect(mixedAudio);
+  if (remoteRadioMode == RRMode.STUDIO) {
+    crossfader = new RRCrossfader(playerLeft, playerRight);
+  } else {
+    document.getElementById("songs").style.display = "none";
+    // document.getElementById("cartH1").style.display = "none";
+  }
+	mic = new RRMicrophone(s);
+	micMediaStream = s;
+	mic.connect(recorderBuss);
+  //mic.connect(remoteBussGain);
 
-var audioContext;
-var peer, peerHandler;
-var stream;
-// invited by another peer
-var invited = false;
-var connectedPeers = {};
-var audioIncomingStream;
-// audio meter variables...
-var audioMeterCanvas, audioMeter, mediaStreamSource, rafID, rafID2;
-const METER_WIDTH = 500, METER_HEIGHT = 300;
-//
-var twoWayCall = false;
-const debugLevel = "3";
-var conn;
-var mediaRecorder;
-// The key for Peer.js
-//const PEERJS_API_KEY = "hl8rgs7ghiurqkt9";
-const SERVER = "p2pstudio.herokuapp.com";
-var constraints = {
-    autoGainControl: false,
-    channelCount: 1,
-    echoCancellation: false,
- // latency:
-    noiseSuppression: false,
-    sampleRate: bitrate,
-    sampleSize: 16
-//        volume:
-};
-var options = { mimeType: 'audio/webm;codecs=opus' };
-var tryReconnect = true; //boolean - do we try and reconnect if connection drops?
-var reconnectID, reconnectInterval = 1000;
+  if (remoteRadioMode != RRMode.REMOTE_GUEST) {
+    // record outgoingRemoteStreamBuss + mixed audio
+	 theRecorder = new RRRecorder(mixedAudio.stream);
+  } else {
+    setRRMode(remoteRadioMode);
+  }
 
-// Modes of P2PStudio
-const MODE = {
-    LOADING: 0,
-    SPLASH: 1,
-    P2PSTUDIO: 2,
-    CALL_IN: 3,
-};
-var currentMode = MODE.LOADING;
-///////////////////////////////////////////////////////////////////////////////////////////////////
+  meter = new RRVolumeMeter(document.getElementById("meter"), theAudioContext, recorderBuss, false, "horizontal");
+}
+
+// Called if we can't get an audio input from getUserMedia
 //
 //
-    // Opera 8.0+
-var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
-    // Firefox 1.0+
-var isFirefox = typeof InstallTrigger !== 'undefined';
-    // At least Safari 3+: "[object HTMLElementConstructor]"
-var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
-    // Internet Explorer 6-11
-var isIE = /*@cc_on!@*/false || !!document.documentMode;
-    // Edge 20+
-var isEdge = !isIE && !!window.StyleMedia;
-    // Chrome 1+
-var isChrome = !!window.chrome && !!window.chrome.webstore;
-    // Blink engine detection
-var isBlink = (isChrome || isOpera) && !!window.CSS;
-//////////////////////////////////////////////////////////////////////////////////////////////////////
+function onUserMediaError(e) {
+	document.getElementById("badBrowser").style.visibility = "visible";
+	document.getElementById("riskyClick").addEventListener("click", (e) => {
+		document.getElementById("badBrowser").style.visibility = "hidden";
+		onUserMediaSuccess(null);
+	});
+	RRError("Could not get User Media from Browser: "+e);
+	statusReport("Unable to get User Media: "+e);
+}
+// shows a toast with info
+function statusReport(str) {
+    statusReportDiv.innerHTML = str;
+    statusReportDiv.classList.add('show');
+    setTimeout(function() { statusReportDiv.classList.remove('show'); }, 3000);
+}
+// chatButton handler
+function onChatButtonClick(e) {
+  chatWindow.classList.add("visible");
+  chatToSendText.focus();
+  dialogOpened = true;
+}
+// chat dialog
+// currently just sends to all connected peers
+function onChatSend() {
+  let t = chatToSendText;
+  let val = t.value;
+  if (val === "") {
+    RRDebug("Nothing to send in sendChat...");
+    return;
+  }
+  if (studioConnection === null || studioConnection === undefined) {
+    if (connectedPeers === null) {
+      RRError("No connection...");
+      return;
+    }
+  }
+  let h = stripHTML(val);
+  t.value = null;
+  if (studioConnection != null) {
+    studioConnection.send(h);
+    statusReport("Sent message <br/ >" + h + "<br /> to " + studioConnection.peerID);
+  }
+    for (var i in connectedPeers) {
+      // RRDebug(i);
+      if (i != STUDIO_ID) {
+        connectedPeers[i].send(h);
+        statusReport("Sent message <br/ >" + h + "<br /> to " + i);
+      }
+    }
+
+  chatDiv.innerHTML += "<span class='outgoingText'>Me: " + h + "</span><br />";
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
 //
-// Heartbeater is here to maintain a connection on the Heroku server otherwise it disconnects
+function sendChatToAll(msg){
+    if (studioConnection != null) {
+    studioConnection.send(msg);
+  }
+    for (var i in connectedPeers) {
+      if (i != STUDIO_ID) {
+        connectedPeers[i].send(msg);
+        statusReport("Sent message <br/ >" + h + "<br /> to " + i);
+      }
+    }
+}
 //
+// one time initialisation of audio
+function initialiseAudio() {
+  if (Config.micDeviceId && Config.micDeviceId !== "null") {
+   RRDebug("Attempting to get device, id of: " + Config.micDeviceId);
+   constraints = {
+    audio: { 
+      deviceId: { exact: Config.micDeviceId },
+      sampleRate: 44100,
+      sampleSize: 16,
+      channelCount: 2,         // try and get stereo
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+        // mandatory:{googAutoGainControl: false}
+    },
+    video: false
+   };
+  }
+
+  micMediaStream = navigator.mediaDevices.getUserMedia(constraints)
+              .then(onUserMediaSuccess)
+              .catch(onUserMediaError);
+}
+// when talkback button is clicked
+// could be implemented in the future with separate talkbackBuss
+// for now just remove mics from recorderBuss
+function onTalkbackButtonClick(e) {
+  // if (!isConnected)
+  //   return;
+  if (!connectedPeers) {
+    RRError("Attempted talkback with no connected peers.");
+    talkbackButton.disabled = true;
+    talkingBack = false;
+    return;
+  }
+  if (!talkingBack) {
+    talkingBack = true;
+    talkbackButton.classList.add("talkingBack");
+  } else {
+    talkingBack = false;
+    talkbackButton.classList.remove("talkingBack");
+  }
+  // remove mic(s) and remote connection(s) from mediarecorder buss
+  // and remove samplers/players from remotestream and output buss
+  if (playerLeft) playerLeft.talkback();
+  if (playerRight) playerRight.talkback();
+  for (let i = 0; i < NUM_SAMPLERS; i++) {
+    if (samplers[i]) samplers[i].talkback();
+  }
+  mic.talkback(talkingBack);
+  if (incomingRemoteStreamGain) {
+    if (talkingBack) {
+      incomingRemoteStreamGain.disconnect(recorderBuss);
+    } else {
+      incomingRemoteStreamGain.connect(recorderBuss);
+    } 
+  } else {
+      RRDebug("incomingRemoteStreamGain not created");
+  }
+  if (e != null) {
+    for (let i in connectedPeers) {
+      connectedPeers[i].talkback(talkingBack);
+    }
+  }
+}
+
+// get all the HTML elements we need into variables
+function initialiseDOM() {
+  document.addEventListener("click", resumeAudio);  // keep audio alive for Chrome
+  document.addEventListener("keydown", handleKeys);
+  studioConnectionStatusDiv = document.getElementById("studioConnectionStatus");
+  audioInputSelection = document.getElementById("audioInputSelection");
+  audioInputSelection.addEventListener("change", onAudioInputChanged);
+  connectionSettingsButton = document.getElementById("connectionSettingsButton");
+  connectionSettingsButton.addEventListener("click", onConnectionSettingsClick);
+  outputSettingsButton = document.getElementById("outputSettingsButton");
+  outputSettingsButton.addEventListener("click", outputSettingsButtonClick);
+  guestSettingsButton = document.getElementById("guestSettingsButton");
+  guestSettingsButton.addEventListener("click", guestSettingsButtonClick);
+  speakerSelect = document.getElementById("speakerSelect");
+  recordingSettingsButton = document.getElementById("recordingSettingsButton");
+  recordingSettingsButton.addEventListener("click", recordingSettingsButtonClick);
+  talkbackButton = document.getElementById("talkbackButton");
+  talkbackButton.addEventListener("click", onTalkbackButtonClick);
+  talkbackButton.disabled = true;
+  statusReportDiv = document.getElementById("statusReport");
+  chatWindow = document.getElementById("chatWindow");
+  new DragElement(chatWindow);
+  chatButton = document.getElementById("chatButton");
+  chatButton.disabled = true;
+  chatButton.addEventListener("click", onChatButtonClick);
+  chatSend = document.getElementById('chatSend');
+  chatSend.addEventListener("click", onChatSend);
+  chatClose = document.getElementById('chatClose');
+  chatClose.addEventListener("click", (e) => {
+    chatWindow.classList.remove("visible");
+    dialogOpened = false;
+  });
+  chatDiv = document.getElementById("chatDiv");
+  chatToSendText = document.getElementById("chatToSendText");
+  chatToSendText.addEventListener("keyup", function(event) {
+  // Number 13 is the "Enter" key on the keyboard
+  if (event.keyCode === 13) {
+    // Cancel the default action, if needed
+    event.preventDefault();
+    // Trigger the button element with a click
+    onChatSend(event);
+  }
+});
+  rrModeSwitch = document.getElementsByName("rr-mode");
+  for (let j = 0; j < rrModeSwitch.length; j++) {
+    rrModeSwitch[j].addEventListener("change", (e) => { onRRModeSwitch(e); });
+  }
+
+  let gc = document.getElementById("GuestConnection");
+  gc.addEventListener("click", (e) => {
+    if (connectedPeers.length == 0)
+      guestSettingsButtonClick(e);
+    else RRDebug(connectedPeers);
+  });
+  let b = document.getElementById("connectButton");
+  if (remoteRadioMode == RRMode.REMOTE_GUEST) {
+     b.addEventListener("click", () => {
+        connectedPeers[remotePeerID] = callRemotePeer(remotePeerID, outgoingRemoteStreamBuss.stream);
+      });
+  } else {
+    b.addEventListener("click", connectToStudio);
+  }
+  switch (remoteRadioMode) {
+    case RRMode.REMOTE_GUEST: 
+    case RRMode.LINK:
+          // FIXME...
+      setRRMode(RRMode.LINK);
+      break;
+    default:
+      break;
+  }
+}
+//
+function setRRMode(mode) {
+
+  document.getElementById("songs").classList.remove(remoteRadioMode);
+  document.getElementById("cartH1").classList.remove(remoteRadioMode);
+  document.getElementById("GuestConnection").classList.remove(remoteRadioMode);
+  document.getElementById("samplers").classList.remove(remoteRadioMode);
+  document.getElementById("RRRecorder").classList.remove(remoteRadioMode);
+  document.getElementById("rrModeSwitch").classList.remove(remoteRadioMode);
+
+  remoteRadioMode = mode;
+  document.getElementById("songs").classList.add(remoteRadioMode);
+  document.getElementById("cartH1").classList.add(remoteRadioMode);
+  document.getElementById("GuestConnection").classList.add(remoteRadioMode);
+  document.getElementById("samplers").classList.add(remoteRadioMode);
+  document.getElementById("RRRecorder").classList.add(remoteRadioMode);
+  document.getElementById("rrModeSwitch").classList.add(remoteRadioMode);
+  if (remoteRadioMode == RRMode.LINK) {
+    document.getElementById("Mic_1").classList.add(remoteRadioMode);
+  }
+}
+//
+function onRRModeSwitch(e) {
+  setRRMode(e.target.id);
+  switch (e.target.id) {
+    case "direct":
+      break;
+    case "interview":
+      break;
+    case "studio":
+
+      break;
+    default:
+      RRDebug("Unknown Remote Radio mode chosen: "+ e.target.id);
+      break;
+  }
+}
+// handle keyboard shortcuts
+// disabled when dialogs or chat window is open
+function handleKeys(e){
+if (dialogOpened) return;
+
+  switch (e.key) {
+    case 't':
+      meter.dump();
+      break;
+    case 'a':
+    case 'A':
+      if (playerLeft){
+        playerLeft.onClick();
+      }
+      break;
+    case 'q':
+    case 'Q':
+      if (playerLeft){
+        playerLeft.eject();
+      }
+      break;
+    case 'L':
+    case 'l':
+      if (playerRight){
+        playerRight.onClick();
+      }
+      break;
+    case 'p':
+    case 'P':
+      if (playerRight){
+        playerRight.eject();
+      }      
+      break;
+    case 'm':
+    case 'M':
+      // turn mic on/off
+      if (mic){
+        mic.switch();
+      }
+      break;
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+      let s = parseInt(e.key) - 1;
+      if (samplers[s]){
+        samplers[s].onClick();
+      }
+      break;
+    case 'n': // toggle sending mic input to headphones/speakers
+        mic.switchSpeakerOutput();
+        break;
+
+    case "ArrowLeft": // left arrow
+    case "Left":
+		if (crossfader) crossfader.moveLeft();
+		break;
+	case "ArrowRight": // left arrow
+    case "Right":
+		if (crossfader) crossfader.moveRight();
+    	break;
+    default:
+      break;
+  }
+}
+//
+function connectToStudio() {
+  if (studioConnectionStatus == ConnectionStatus.CONNECTED) {
+    // disconnect from studio
+    peerHandler.disconnectFromStudio();
+  } else {
+    peerHandler.connectToStudio();
+  }
+}
+// user has selected a different audio input device
+function onAudioInputChanged(e){
+  var constraints = {
+	  audio: { 
+			deviceId: { exact: e.target.value },
+      sampleRate: DEFAULT_SAMPLE_RATE,
+      sampleSize: 16,
+      channelCount: 2,         // try and get stereo
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      // mandatory:{googAutoGainControl: false}
+    },
+    video: false
+  };
+  Config.micDeviceId = e.target.value;
+  saveStorage();
+  mic.disconnectFromSpeaker();
+  mic.disconnect();
+  if (!mic.muted) mic.mute();
+
+  micMediaStream.getTracks().forEach(function(track) {
+		track.stop();
+	});
+  statusReport("Switching to new microphone...");
+	micMediaStream = navigator.mediaDevices.getUserMedia(constraints).then(newMic).catch();
+  document.getElementById("micSettingsDialog").open = false;
+}
+// initialise mic object
+function newMic(s) {
+	micMediaStream = s;
+	mic.changeInput(s);
+	mic.connect(/*mixedAudio */ recorderBuss);
+  // mic.connect(remoteBussGain);
+}
+//
+// main
+//
+window.addEventListener("load", (e) => {
+//  var remotePeerID;
+  const urlParams = new URLSearchParams(window.location.search); 
+  for (const [key, value] of urlParams) {
+    if (key === "peer") { // connected as remote guest
+      remotePeerID = value;
+      remoteRadioMode =  RRMode.REMOTE_GUEST;
+    } else if (key === "mode") {
+      switch (value) {
+        case "direct":
+          remoteRadioMode = RRMode.LINK;
+          break;
+        case "interview":
+          remoteRadioMode = RRMode.CALL_IN;
+          break;
+        default:
+          remoteRadioMode = RRMode.STUDIO;
+          break;
+      }
+    }
+  }
+  initialiseAudio();
+  // if studio mode we need:
+  // 2 decks, array of samplers, crossfader
+  switch (remoteRadioMode) {
+    case RRMode.STUDIO:
+      playerLeft  = new RRPlayer();
+      playerRight = new RRPlayer();
+      for (let i = 0; i < NUM_SAMPLERS; i++){
+        samplers[i] = new RRSampler();
+      }
+      break;
+    case RRMode.LINK:
+      break;
+    case RRMode.CALL_IN:
+      for (let i = 0; i < CALL_IN_NUM_SAMPLERS; i++){
+        samplers[i] = new RRSampler();
+      }
+      break;
+    case RRMode.REMOTE_GUEST:
+      break;
+  }
+
+  if (remoteRadioMode!=RRMode.SERVER){
+    peer = new Peer({ host: SERVER, port:'', debug: debugLevel });
+  }
+  else {
+    peer = new Peer(STUDIO_ID, { host: SERVER, port:'', debug: debugLevel });
+  }
+  peerHandler = new PeerHandler(peer);
+  initialiseDOM();
+  document.addEventListener("dragover", (e) => { e.preventDefault(); });
+  document.addEventListener("drop", (e) => { e.preventDefault();
+    if (remoteRadioMode == RRMode.STUDIO) playerLeft.filePicked(e.dataTransfer.files);
+  });
+});
+// recording settings dialog handler
+function recordingSettingsButtonClick(e) {
+  let d = document.getElementById("recordingSettingsDialog");
+  let t = document.getElementById("recordingTitle");
+  t.value = theRecorder.title;
+  let c = document.getElementById("addDateToRecordingCheckbox");
+  c.checked = theRecorder.addDateToTitle;
+  let b = document.getElementById("recordingSettingsDialogButton");
+
+  b.addEventListener("click", (e) => {
+    dialogOpened = false;
+ 
+    if (t.value !== "") {
+      theRecorder.title = t.value;
+    }
+    theRecorder.addDateToTitle = c.checked;
+  });
+
+  d.showModal();
+  dialogOpened = true;
+}
+// called when the connection settings button is clicked
+// open the dialog and get the new server/peer strings, if any
+// and reconnnect if necessary
+// audio bitrates to be implemented
+function onConnectionSettingsClick(e) {
+
+  var d = document.getElementById("settingsDialog");
+  let b = document.getElementById("settingsDialogButton");
+  let t = document.getElementById("serverText");
+  let p = document.getElementById("peerText");
+  if (peer) p.value = peer.id;
+  t.value = remoteStudioID;
+  var radios = document.getElementsByName("bitrate");
+  b.addEventListener("click", (e) => {
+    dialogOpened = false;
+    remoteStudioID = t.value;
+    Config.remoteStudioID = remoteStudioID;
+    //connectToNewPeer(remoteStudioID);
+    //remoteStudioID = p;
+    if (p.value != peer.id) {
+      RRDebug("Found new peer id: "+p.value+" - attempting to connect...");
+      statusReport("Attempting to switch to peer id " + p.value);
+      peer = new Peer(p.value, { host: SERVER, port:'', debug: debugLevel });
+      peerHandler = new PeerHandler(peer);
+    }
+    radios.forEach((radio) => {
+      if (radio.checked) {
+        switch (radio.value) {
+          case "low":
+            Config.bitrate = 20;
+            Config.stereo = 0;
+            break;
+          case "medium":
+            Config.bitrate = 144;
+            Config.stereo = 1;
+            break;
+          case "high":
+            Config.bitrate = 320;
+            Config.stereo = 1;
+            break;
+        }
+      }
+    });
+    saveStorage();
+  });
+  d.showModal();
+  dialogOpened = true;
+}
+// called when the audio output settings button is clicked
+// open the dialog and get the new audio device id and connect
+// to the new output device
+function outputSettingsButtonClick(e) {
+  var d = document.getElementById("outputSettingsDialog");
+  let b = document.getElementById("outputSettingsDialogButton");
+
+  if (speakerSelect.length <=1) {
+	  speakerSelect.style.display = "none";
+	  document.getElementById("outputLabel").innerHTML = "<p>You only have one possible audio output...</p>";
+  }
+  b.addEventListener("click", (e) => {
+    dialogOpened = false;
+    // TODO implement output selection
+  });
+  d.showModal();
+  dialogOpened = true;
+}
+// remote connections dialog handler
+//
+function guestSettingsButtonClick(e) {
+  var d = document.getElementById("guestSettingsDialog");
+  let t = document.getElementById("guestText");
+  let b = document.getElementById("guestSettingsDialogButton");
+  let i = document.getElementById("connectURL");
+  let href = window.location.href;
+  var connString ='';
+  if (window.location.search != "") {
+    href = href.replace(window.location.search, '');
+  }
+  if (peer.id) {
+    connString = href + "?peer=" + peer.id;
+  }
+  i.innerHTML = connString;
+  i.addEventListener("click", (e) => {
+     navigator.clipboard.writeText(connString).then(function() {
+      statusReport("Link copied to clipboard.");
+    }, function() {
+      RRDebug("Couldn't copy text to clipboard...");
+      errorReport("Couldn't access clipboard, copy link manually.");
+    });
+  });
+  b.addEventListener("click", (e) => {
+    dialogOpened = false;
+    invitePeerByEmail(t.value);
+  });
+  dialogOpened = true;
+  if (!d.open) {
+    d.showModal();
+  } else {
+    // RRDebug("dialog already open")
+  }
+}
+// send an email with link to the page
+function invitePeerByEmail(em) {
+ if (em === null || em === "") {
+  return;
+ }
+  if (!validateEmail(em)) {
+    errorReport("Invalid email address");
+    return;
+  }
+  window.open("mailto: " + em + "?subject=Connect%20via%20RemoteRadio&body=" + document.location + "?c=" + peer.id);
+}
+
+// update the connection status 
+function setStudioConnectionStatus(status) {
+  if (studioConnectionStatus == status)
+    return;
+  studioConnectionStatus = status;
+  let s = studioConnectionStatusDiv;
+  s.classList.remove("Connecting");
+  s.classList.remove("Connected");
+
+  switch (status) {
+    case ConnectionStatus.DISCONNECTED:
+      s.textContent = "Disconnected";
+      isConnected = false;
+      connectButton.disabled = false;
+      if (connectedPeers==null)
+        chatButton.disabled = true;
+      talkbackButton.disabled = true;
+      // RRDebug("Connection to studio lost...");
+      break;
+    case ConnectionStatus.PEER:
+      s.textContent = "Ready...";
+      connectButton.disabled = false;
+      chatButton.disabled = true;
+      break;
+    case ConnectionStatus.CONNECTING:
+      s.textContent = "Connecting...";
+      s.classList.add("Connecting");
+      connectButton.disabled = true;
+      chatButton.disabled = true;
+      break;
+    case ConnectionStatus.CONNECTED:
+      s.textContent = "Connected";
+      s.classList.add("Connected");
+      isConnected = true;
+      connectButton.disabled = true;
+      connectButton.value = "Disconnect";
+      connectButton.innerHTML = "Disconnect";
+      chatButton.disabled = false;
+      talkbackButton.disabled = false;
+      break;
+    default:
+      RRDebug("Unknown value for Connection Status passed to setStudioConnectionStatus");
+      break;
+    }
+}
+//
+// where all the action happens to alter quality of streams
+// streams we may need -> 
+//    + stream to studio - high bitrate, stereo
+//    + talkback stream - low bitrate, mono
+//    + remote guest stream(s): med/high bitrate, mono
+//
+// important sdp lines we need to alter/add:
+// a=rtpmap: opus/48000/2 - get opus codec at 48k sample rate stereo
+// b=AS: Config.bitrate - set the bandwidth
+// a=fmtp: - set the codec options:
+//    x-google-min-bitrate, x-google-max-bitrate=Config.bitrate - for Chrome set bitrate bounds
+//    maxeveragebitrate=Config.bitrate*1024 - sdp spec bitrate (in k)
+//    cbr=1 - constant bit rate boolean - we want yes
+//    dty=1 - yes
+//    nostd=1 - yes
+//    usedtx=0 - no
+//    stereo=0/1 - send stereo sound
+//    sprop-stereo=1 - receive stereo
+//    
+// configs -
+// bitrate=24 mono - talkback, 144, stereo - music, 256 mono - high speech, 320 stereo - max, 80 mono (default)
+// https://tools.ietf.org/id/draft-spittka-payload-rtp-opus-00.html
+function doTalkbackSdpTransform(sdp) { doSdpTransform(sdp, 1, 24); }
+function doSdpTransform(sdp, overridester=0, bitrate) {
+  if (!bitrate)
+    bitrate = Config.bitrate;
+
+  //RRDebug("bitrate: "+ bitrate);
+  const media = "audio";
+  var lines = sdp.split("\n");
+  var line = -1;
+  var fmtline = -1;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].indexOf("m="+media) === 0) {
+      line = i;
+      // break;
+    }
+    if (lines[i].indexOf("a=fmtp") === 0)
+      fmtline = i;
+  }
+  if (line === -1) {
+    RRDebug("Could not find the m line for", media);
+   // return sdp;
+  }
+  if (fmtline !== -1) {
+  //  RRDebug("Found fmtp: " + lines[fmtline]);
+    // FIX FIX FIX
+    lines[fmtline]=lines[fmtline].trim();
+    lines[fmtline]=lines[fmtline].concat('; stereo='+Config.stereo+'; maxaveragebitrate='+bitrate*1024+'; sprop-stereo=1; x-google-max-bitrate='
+      +bitrate+ '; x-google-min-bitrate='+bitrate+'; cbr=1; nostd=1; usedtx=0; dty=1');
+    //RRDebug("FMTP: "+lines[fmtline]);
+  }
+  //RRDebug("Found the m line for", media, "at line", line);
+ 
+  // Pass the m line
+  line++;
+ 
+  // Skip i and c lines
+  while (lines[line].indexOf("i=") === 0 || lines[line].indexOf("c=") === 0) {
+    line++;
+  }
+ 
+  // If we're on a b line, replace it
+  if (lines[line].indexOf("b") === 0) {
+    //RRDebug("Replaced b line at line", line);
+    lines[line] = "b=AS:"+bitrate;// + bitrate;
+  }
+  sdp = lines.join("\n");
+  //RRDebug("SDP = "+sdp);
+  return sdp;
+}
+/*
+ *
+ * PeerHandler class
+ * wrapper to handle all the peer to peer stuff
+ */
+class PeerHandler {
+
+    // setup callbacks for peer
+    constructor(p) {
+        this.peer = p;
+        this.newPeer(p);
+    }
+
+    // set up all the callbacks for our peer connection
+    newPeer(peer) {
+        heartbeater = makePeerHeartbeater(this.peer);
+
+        // callbacks
+        this.peer.on("open",   // called when server connection established
+          (id) => {
+                RRDebug("Peer onOpen -> My peer ID is: " + id);
+                statusReport("Connected to Remote Radio server");
+                setStudioConnectionStatus(ConnectionStatus.PEER);
+             }
+        ); // open
+        this.peer.on("call",   // when we get an incoming call - i.e. remote guest
+          (mediaConnection) => {
+            chatButton.disabled = false;
+            talkbackButton.disabled = false;
+            RRDebug("peer.onCall -> Answering incoming call from: " + mediaConnection.peer);
+            mediaConnection.answer(outgoingRemoteStreamBuss.stream, {sdpTransform: doSdpTransform});
+            // send audio pgm or talk buss
+            mediaConnection.on("stream", (remoteStream) => { // incoming stream
+                onCallStreamIncoming(remoteStream);
+                //connectedPeers[mediaConnection.peer].setIncomingStream(incomingRemoteStreamGain.stream);
+                //connectedPeers[mediaConnection.peer].setIncomingStream(remoteStream);
+              }
+            );
+
+            mediaConnection.on("close", () => { // call is ended
+                hangUp();
+                RRDebug("Stream closed from " + mediaConnection.peer);
+                statusReport("Lost stream connection with " + mediaConnection.peer);
+                // TODO try and reconnect to peer
+                // setStudioConnectionStatus(ConnectionStatus.PEER);
+
+                delete connectedPeers[mediaConnection.peer];
+              }
+            );
+          }
+        ); // call
+        this.peer.on("connection",   // incoming data connection
+            (c) => {
+               RRDebug("peer.onConnection -> Established data connection to " + c.peer);
+               chatButton.disabled = false;
+               if (!connectedPeers[c.peer]) {
+                  RRDebug("Peer doesn't exist");
+                  connectedPeers[c.peer] = new PeerToPeerConnection(c.peer);
+               }
+              connectedPeers[c.peer].setConnectionStatus(ConnectionStatus.CONNECTED);
+              if (c.peer == STUDIO_ID) {
+                //studioConnection.setConnection(c);
+                setStudioConnectionStatus(ConnectionStatus.CONNECTED);
+              } else {
+                //connectedPeers[c.peer].setConnection(c);
+              }
+              isConnected = true;
+
+              c.on("data",
+                // received data
+                (data) => {
+                  RRDebug("Received data: " + data);
+                  if (data.startsWith(RRCommand.TALKBACK)) {
+                    RRDebug("Talkback message received..." + data);
+                    if (data.includes("true")) {
+                      // this is not very elegant or intuitive but it works
+                      talkingBack = false;
+                      onTalkbackButtonClick(null);
+                    } else {
+                      talkingBack = true;
+                      onTalkbackButtonClick(null);
+                    }
+                  } else {
+                      statusReport("Message from " + c.peer + ": <br /> " + data);
+                      chatDiv.innerHTML += "<span class='incomingText'>" + c.peer + " : " + data + "</span><br />";
+                      chatDiv.scrollTop = chatDiv.scrollHeight;
+                    }
+                  }); // data
+                  c.on("close",
+                        () => {
+                          isConnected = false;
+                          statusReport("Connection lost to "+c.peer);
+                          RRDebug("Connection lost to "+c.peer);
+                          if (c.peer == STUDIO_ID) {
+                            setStudioConnectionStatus(ConnectionStatus.PEER);
+                          }
+                          else {
+                            connectedPeers[c.peer].setConnectionStatus[ConnectionStatus.DISCONNECTED];
+                          }
+                          delete connectedPeers[c.peer];
+                          }
+                        ); // close
+                   //   }
+                   // );
+                    c.on("open", // connection is ready to use
+                        () => {
+                            RRDebug ("open");
+                            connectedPeers[c.peer].setConnectionStatus(ConnectionStatus.CONNECTED);
+                            if (c.peer == STUDIO_ID)
+                              setStudioConnectionStatus(ConnectionStatus.CONNECTED);
+                        }
+                    );
+                    c.on("error",
+                        (err) => {
+                            RRError("Connection error: " + err);
+                            statusReport(err);
+                            connectedPeers[c.peer].setConnectionStatus(ConnectionStatus.DISCONNECTED);
+                            delete connectedPeers[c.peer];
+                        }
+                    );
+               }
+        );
+        this.peer.on("close",
+          // peer is destroyed
+            () => {
+                RRDebug("Peer onClose -> Peer destroyed");
+                statusReport("Not connected - check internet connection");
+                this.peer = null;
+                // delete all connections - or retry
+                setStudioConnectionStatus(ConnectionStatus.DISCONNECTED);
+            }
+        );
+        this.peer.on("error",
+            (err) => {
+                RRError("peer.onError: " + err);
+                statusReport(err);
+                switch (err.type) {
+                  case 'browser-incompatable':
+                    break;
+                  case 'socket-error':
+                  default: 
+                    break;
+                }
+                hangUp();
+                setStudioConnectionStatus(ConnectionStatus.PEER);
+            }
+        );
+        this.peer.on("disconnected",
+        // disconnnected from server
+            () => {
+                statusReport("Disconnected from server... retrying...");
+                RRDebug("Peer onDisconnected -> Lost connection to server. Attempting reconnect");
+                setStudioConnectionStatus(ConnectionStatus.DISCONNECTED);
+                isConnected = false;
+                /* if (this.peer) {
+                    setTimeout(this.reconnect, reconnectInterval);
+                } else {
+                */
+                  RRDebug("No peer - attempting to recreate...");
+                  // this.peer = new Peer({ host: SERVER, port:'', debug: debugLevel });
+                  this.reconnect();
+                  //peerHandler = new PeerHandler(peer);
+                //}
+                // disconnect from connections???
+            }
+        );
+    }
+
+    handleData(data) {
+      
+    }
+
+    reconnect() {
+      if (!window.navigator.onLine) {
+        RRDebug("Internet connection lost retrying in "+reconnectInterval/1000+" seconds");
+        setTimeout(this.reconnect, reconnectInterval);
+        return;
+      }
+      RRDebug("Reconnecting to server...");
+      setStudioConnectionStatus(ConnectionStatus.CONNECTING);
+      try {
+        /* if (this.peer) {
+          this.peer.reconnect();
+        }
+        else {
+        */
+          RRDebug("Creating Peer...");
+          this.peer = new Peer({ host: SERVER, port:'', debug: debugLevel });
+          peerHandler = new PeerHandler(peer);
+          // this.newPeer(this.peer);
+        //}
+      } catch (e) {
+        RRDebug(e + "\nAttempting reconnect in "+reconnectInterval);
+        setTimeout(this.reconnect, reconnectInterval);
+      }
+    }
+
+    connectToStudio() {
+      setStudioConnectionStatus(ConnectionStatus.CONNECTING);
+      studioConnection = new PeerToPeerConnection(remoteStudioID, outgoingRemoteStreamBuss.stream);
+      // studioConnection.connect();
+      studioConnection.callRemotePeer();
+    }
+
+    disconnectFromStudio() {
+      this.disconnectFromPeer(remoteStudioID);
+    }
+    disconnectFromPeer(id){
+      this.peer.disconnect(id);
+    }
+    // connect to peer with id
+    connectToPeer(id) {
+      if (id === this.peer.id) {
+        RRError("Cannot connect to self!");
+        return;
+      }
+      if (connectedPeers[id]) {
+        if (connectedPeers[id].connectionStatus == ConnectionStatus.CONNECTED) {
+          RRDebug("Already connected to "+id+". Ignoring request...");
+          return;
+        }
+      }
+
+      RRDebug("Trying new peer connection: " + id);
+      var conn = this.peer.connect(id);
+      // RRDebug(conn);
+      conn.on("open",
+        () => {
+          RRDebug("In open");
+          chatButton.disabled = false;
+          connectedPeers[id].setConnectionStatus(ConnectionStatus.CONNECTED);
+          // connectedPeers[id].send("Hello " + id);
+          conn.send("Hello " + id);
+          statusReport("Connected to " + id);
+          conn.on("data",
+            (data) => { // received data as initiator
+              RRDebug(id + " Received data: " + data);
+              // TODO remove duplidacted code into function
+                if (data.startsWith(RRCommand.TALKBACK)) {
+                      RRDebug("Talkback message received..." + data);
+                      if (data.includes("true")) {
+                        // this is not very elegant or intuitive but it works
+                        talkingBack = false;
+                        onTalkbackButtonClick(null);
+                      } else {
+                        talkingBack = true;
+                        onTalkbackButtonClick(null);
+                      }
+                    } else {
+                      statusReport("Message from "+conn.peer + ": <br /> "+data);
+                      chatDiv.innerHTML += "<span class='incomingText'>" + conn.peer + " : " + data + "</span><br />";
+                      chatDiv.scrollTop = chatDiv.scrollHeight;
+                    }
+            }
+          );
+          // send our audio to the studio
+           if (id == STUDIO_ID) {
+            setStudioConnectionStatus(ConnectionStatus.CONNECTED);
+            RRDebug("Connecting to studio : " + conn.peer + " "+ outgoingRemoteStreamBuss.stream);
+            callRemotePeer(conn.peer, outgoingRemoteStreamBuss.stream);
+          } else if (remoteRadioMode != RRMode.GUEST) {
+            RRDebug("Attempting call to "+ conn.peer);
+            //connectedPeers[id].connect();
+            connectedPeers[id].setStream(outgoingRemoteStreamBuss.stream);
+            connectedPeers[id].callRemotePeer();
+            //callRemotePeer(id);
+          }
+        }
+      );
+      conn.on("close",
+        () => {
+          RRDebug("Connection lost to " + conn.peer);
+          statusReport("Connection lost to "+ conn.peer);
+          connectedPeers[conn.peer].setConnectionStatus(ConnectionStatus.DISCONNECTED);
+          delete connectedPeers[conn.peer];
+          if (conn.peer == STUDIO_ID)
+            setStudioConnectionStatus(ConnectionStatus.PEER);
+        }
+      );
+      conn.on("error",
+        // error could be can't connect
+        (err) => {
+          connectedPeers[conn.peer].setConnectionStatus(ConnectionStatus.DISCONNECTED);
+          delete connectedPeers[conn.peer];
+          statusReport("Connection error: " + err);
+          if (conn.peer == STUDIO_ID)
+            setStudioConnectionStatus(ConnectionStatus.PEER);
+          RRDebug("Error: " + err);
+        }
+      );
+      if (id == STUDIO_ID) {
+        studioConnection.setConnection(conn);
+        setStudioConnectionStatus(ConnectionStatus.CONNECTED);
+      } else {
+        connectedPeers[id].setConnectionStatus(ConnectionStatus.CONNECTED);
+        connectedPeers[id].setConnection(conn);
+      }
+
+      return conn;
+    }
+
+    send(val) {
+      studioConnection.send(val);
+    }
+}
+// deal with new incoming stream
+function onCallStreamIncoming(remoteStream) {
+  // add remoteStream to audio
+  let mss = theAudioContext.createMediaStreamSource(remoteStream);
+  let msd = theAudioContext.createMediaStreamDestination();
+
+  incomingRemoteStreamGain = theAudioContext.createGain();
+  incomingRemoteStreamGain.gain.setValueAtTime(1, theAudioContext.currentTime);
+  mss.connect(incomingRemoteStreamGain);
+
+  incomingRemoteStreamGain.connect(msd);
+  incomingRemoteStreamGain.connect(recorderBuss);
+  incomingRemoteStreamGain.connect(outputBuss);
+
+  // play incoming audio stream
+  audioIncomingStream = new Audio();
+  audioIncomingStream.srcObject = remoteStream;
+  audioIncomingStream.onloadedmetadata = (e) => {
+    RRDebug('Now playing incoming remote stream: ' + e);
+    audioIncomingStream.play();
+  };
+}
 
 // pass the peer instance, and it will start sending heartbeats
-var heartbeater;// = makePeerHeartbeater(peer);
+var heartbeater; // = makePeerHeartbeater(peer);
 const HB_TIMEOUT_INTERVAL = 20000;
-// stop them later
-// heartbeater.stop();
-
 function makePeerHeartbeater(peer) {
     var timeoutId = 0;
     function heartbeat() {
         timeoutId = setTimeout(heartbeat, HB_TIMEOUT_INTERVAL);
         if (peer.socket._wsOpen()) {
-            peer.socket.send( {type:'HEARTBEAT'} );
+            peer.socket.send( {type: 'HEARTBEAT'} );
         }
     }
     // Start 
@@ -159,948 +1216,148 @@ function makePeerHeartbeater(peer) {
         }
     };
 }
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// Recording functions
-//
-var chunks = [];
-
-function recordButtonOnClick() {
-   if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices.getUserMedia) {
-        errorReport("MediaRecorder not found");
-    } else {
-      //navigator.mediaDevices.getUserMedia(constraints).then(startRecording).catch(errorCallback);
-      // TODO: mix streams according to user preference
-      startRecording(stream);
-    }
-}
-
-//
-//
-//
-function saveConfig(){
-	saveStorage();
-	statusReport("Configuration saved!");
-}
-//function errorCallback(err){
-//    errorReport(err);
-//}
-
-function startRecording(stream) {
-    recordButton.setAttribute("fill", "#222");
-//    console.log('Starting...');
-    if (isFirefox) {
-        options = { mimeType: 'audio/ogg' };
-    }
-    mediaRecorder = new MediaRecorder(stream, options);
-    mediaRecorder.start();
-
-  //  var url = window.URL || window.webkitURL;
-  //  audioElement.srcObject = stream;
-  //  audioElement.play();
-
-    mediaRecorder.ondataavailable = function(e) {
-        chunks.push(e.data);
-    };
- 
-    mediaRecorder.onerror = function(e){
-        errorReport('Error: ', e);
-    };
- 
-    mediaRecorder.onstart = function(){
-        console.log('Started, state = ' + mediaRecorder.state);
-    };
- 
-    mediaRecorder.onstop = function(){
-     console.log('Stopped, state = ' + mediaRecorder.state);
-  
-        var blob;
-        if (isFirefox){
-            blob = new Blob(chunks, {type: "audio/ogg"});
-        } else {
-            blob = new Blob(chunks, {type: "audio/webm;codecs=opus"});            
-        }
-        chunks = [];
-  
-        var audioURL = window.URL.createObjectURL(blob);
-  
-        downloadLink.href = audioURL;
-//        audioElement.src = audioURL;
-        downloadLink.innerHTML = 'Download audio file';
-  
-        var rand = Math.floor((Math.random() * 10000000));
-        var name = "audio_" + rand + ".webm" ;
-
-        downloadLink.setAttribute("download", name);
-        downloadLink.setAttribute("name", name);
-    };
- 
-    mediaRecorder.onwarning = function(e){
-         console.log('Warning: ' + e);
-    };
-}
-
-function stopButtonOnClick() {
-    if (!mediaRecorder)
-        return;
-    if (mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-// PeerHandler
-//
-class PeerHandler {
-
-    // setup callbacks for peer
-    constructor(p) {
-        this.peer = p;
-        heartbeater = makePeerHeartbeater(peer);
-
-        // callbacks
-        //
-        this.peer.on("open",   // called when server connection established
-            function(id) {
-                writeIt(pidDiv, "My peer ID is: " + id);
-                if (!invited) {
-                    connectionLinkText.value = document.location + "?c=" + id;
-                } else {
-                    connectionLinkText.disabled = true;
-                }
-            }
-        );
-        this.peer.on("call",   // when we get an incoming call
-            function(mediaConnection) {
-                // debugLog("in PeerHandler.onPeerCall");
-                if (window.confirm("Accept incoming call from " + mediaConnection.peer + "?")){
-                    // Hmmm....
-                    if (twoWayCall) {
-                        mediaConnection.answer(stream);
-                    } else {
-                        mediaConnection.answer(null);
-                    }
-                    mediaConnection.on("stream", onCallStreamIncoming);
-                    mediaConnection.on("close", function() {
-                        callButton.src = "images/phone.svg";
-                       // delete connectedPeers[c.peer];
-                        hangUp();
-                        unconnectedDisableUI();
-                        statusReport("Connection closed");
-                        // TODO try and reconnect to peer
-
-                    });
-                } else {
-                    // User denied incoming call
-                    errorReport("Incoming call denied!");
-                }
-            }
-        );
-        this.peer.on("connection",   // incoming data connection
-            function(c) {
-
-                //debugLog("Received data " + c);
-                //seeObj(c);
-               if (connectedPeers[c.peer] !== 1) { // not connected to this peer
-                    connectedPeers[c.peer] = 1;
-                    conn = c;
-                    createPeerList(c);
-                    isConnected = true;
-
-                    c.on("data",
-                        // received data
-                        function(data) {
-                            debugLog("Received data: " + data);
-                            chatDiv.innerHTML += "<span class='incomingText'>" + c.peer + " : " + data + "</span><br />";
-                            c.on("close",
-                                function() {
-                                    statusReport("Connection lost");
-                                    delete connectedPeers[c.peer];
-                                    createPeerList(c);
-                                }
-                            );
-                        }
-                    );
-                    c.on("open", // connection is ready to use
-                        function() {
-                            // enable UI components
-                            connectedEnableUI();
-                        }
-                    );
-                    c.on("error",
-                        function(err) {
-                            errorReport("Connection error: " + err);
-                        }
-                    );
-                    c.on("close", // remote connection has been closed
-                        function() {
-                            //
-                            isConnected = false;
-                            delete connectedPeers[c.peer];
-                            unconnectedDisableUI();
-                            createPeerList();
-                        }
-                    );
-                }
-                connectedPeers[c.peer] = 1;
-                }
-        );
-        this.peer.on("close",
-          // peer is destroyed
-            function() {
-                debugLog("Peer destroyed");
-                this.peer = null;
-            }
-        );
-        this.peer.on("error",
-            function(err) {
-                errorReport("Peer error: " + err);
-            }
-        );
-        this.peer.on("disconnected",
-        // disconnnected from server
-            function() {
-                statusReport("Disconnected from server");
-                isConnected = false;
-                if (this.peer)
-                    setTimeout(this.peer.reconnect, reconnectInterval);
-                // disconnect from connections???
-            }
-        );
-    }
-
-    // connect to peer with id
-    connectToPeer(id) {
-        if (connectedPeers[id] === 1 || id === this.peer.id) {
-            errorReport("Already connected. Ignoring request...");
-            return;
-        }
-        // TODO: check validity of id here
-        // Could use own id format
-        peerInputText.value = "";
-        connectedPeers[id] = 1;
-        conn = this.peer.connect(id);
-
-        conn.on("open",
-            function() {
-                connectedEnableUI();
-                conn.on("data",
-                    function(data) { // received data as initiator
-                        debugLog(id + " Received data: " + data);
-                        chatDiv.innerHTML += "<span class='incomingText'>" + id + " : " + data + "</span><br />";
-                        chatDiv.scrollTop = chatDiv.scrollHeight;
-                    }
-                );
-                createPeerList(conn);
-            }
-        );
-        conn.on("close",
-            function() {
-                statusReport("Connection lost to " + conn.peer);
-                delete connectedPeers[conn.peer];
-                // remove from html list
-                createPeerList(conn);
-                unconnectedDisableUI();
-            }
-        );
-        conn.on("error",
-            function(err) {
-                errorReport("Error: " + err);
-            }
-        );
-    }
-
-    send(val) {
-        conn.send(val);
-        chatDiv.innerHTML += "<span class='outgoingText'>" + peer.id + val + "</span></br>";
-    }
-}
-//
-// updates the list of connected peers
-//
-function createPeerList(c) {
-    var empty = true;
-    connectedPeersList.innerHTML = "";
-
-    for (var co in connectedPeers) {
-        empty = false;
-        var li = document.createElement("li");
-        li.appendChild(document.createTextNode(co));
-        connectedPeersList.appendChild(li);
-     }
-     if (empty) {
-        connectedPeersList.innerHTML = "<ul>No connections...</ul>";
-     }
-}
 //////////////
 //
 // call another peer with id
 //
-function callRemotePeer(id) {
-    var call = peerHandler.peer.call(id, stream);
-    callButton.src = "images/phone-outgoing.svg";
-     call.on("stream",
-        function(s) {
-            debugLog("Receiving stream: " + URL.createObjectURL(s));
-            isConnected = true;
-            if (s) {
-                audioIncomingStream.srcObject = s;
-                audioIncomingStream.onloadedmetadata = function(e) {
-                    console.log('now playing the audio');
-                    audioIncomingStream.play();
-                    audioMeter = createAudioMeter(audioContext);
-                    var mediaStreamSource2 = audioContext.createMediaStreamSource(s);
-                    // Create a new volume meter and connect it.
-                    mediaStreamSource2.connect(audioMeter);
-                    onLevelChange2();
-                };
-            } else {
-                // No incoming stream = one way call
-            }
-       }
-    );
-    call.on("close", function() {
-        //
-        hangUp();
-    });
-    call.on("error",
-        function(err) {
-            hangUp();
-            errorReport("Call error: " + err);
-        }
-    );
+function callRemotePeer(id, stream) {
+  if (!connectedPeers[id]) {
+    RRDebug("Call Remote Peer... " + id)
+    connectedPeers[id] = new PeerToPeerConnection(id, stream);
+    // connectedPeers[id].connect();
+    //connectedPeers[id].setIncomingStream(outgoingRemoteStreamBuss.stream);
+    if (id == STUDIO_ID) {
+      studioConnection = connectedPeers[id];
+    }
+    let incomingRemoteStream = connectedPeers[id].callRemotePeer();
+    var mss = theAudioContext.createMediaStreamSource(incomingRemoteStream);
+    incomingRemoteStreamGain = theAudioContext.createGain();
+    mss.connect(incomingRemoteStreamGain);
+    incomingRemoteStreamGain.connect(outputBuss);
+    // RRDebug("conn" + connectedPeers[id].connectionStatus);
+    return connectedPeers[id];
+  }
+  else {
+    RRDebug("Incoming call from already connected peer: " + id);
+    return null;
+  }
 }
 
 function hangUp() {
-    callButton.src = "images/phone.svg";
-    isConnected = false;
-    createPeerList();
+  setStudioConnectionStatus(ConnectionStatus.PEER);
+  isConnected = false;
 }
-// connect to peer with id
-function connectToPeer(id) {
-    if (id !== "" && id !== null && id !== undefined) {
-        peerHandler.connectToPeer(id);
-    } else {
-        debugLog("Invalid id for peer: " + id);
+// when getUserMediaDevices is successful
+function gotDevices(deviceInfos) {
+  for (let i = 0; i !== deviceInfos.length; ++i) {
+    var deviceInfo = deviceInfos[i];
+    //RRDebug(deviceInfo);
+    var option = document.createElement('option');
+    option.value = deviceInfo.deviceId;
+    if (deviceInfo.kind === 'audioinput') {
+      option.text = deviceInfo.label ||
+        'Microphone ' + (audioInputSelection.length + 1);
+      audioInputSelection.appendChild(option);
+      if (deviceInfo.deviceId == Config.micDeviceId) {
+        option.selected = true;
+      }
+    } else if (deviceInfo.kind === 'audiooutput') {
+      option.text = deviceInfo.label || 'Output ' + (speakerSelect.length + 1);
+      speakerSelect.appendChild(option);
+      if (Config.speakerDeviceId==deviceInfo.deviceId) {
+        option.selected = true;
+      }
     }
- }
-////////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-
-function onCallStreamIncoming(remoteStream) {
-    // play incoming audio stream
-    console.log("In onCallStreamIncoming");
-    callButton.src = "images/phone-incoming.svg";
-    audioIncomingStream.srcObject = remoteStream;
-    
-    audioIncomingStream.onloadedmetadata = function(e) {
-        console.log('now playing the audio');
-        audioIncomingStream.play();
-    };
-    audioMeter = createAudioMeter(audioContext);
-    var mediaStreamSource2 = audioContext.createMediaStreamSource(remoteStream);
-    // Create a new volume meter and connect it.
-    mediaStreamSource2.connect(audioMeter);
-    onLevelChange2();
-}
-function onCallStreamOutgoing(remoteStream) {
-    // play outgoing audio stream
-    console.log("In onCallStreamOutgoing");
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//
-// function to check if "email" is a valid email address
-function validateEmail(email) {
-  var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(email);
-}
-
-function invitePeerByEmail() {
-    // TODO: send an email with link to the page
-    var em = emailText.value;
-    if (!validateEmail(em)) {
-        //debugLog("Invalid email address");
-        errorReport("Invalid email address");
-        return;
-    }
-    window.open("mailto: " + em + "?subject=Connect%20via%20P2PStudio&body=" + document.location + "?c=" + peer.id);
-}
-
-function setupAudio() {
-    // monkeypatch Web Audio
-    window.AudioContext = window.AudioContext || window.webkitAudioContext;
-    // grab an audio context
-    audioContext = new window.AudioContext();
-}
-
-function unconnectedDisableUI() {
-    chatInputButton.disabled = true;
-    callButton.disabled = true;
-    chatInputText.disabled = true;
-    // reenable new connections
-    peerInputText.value = "";
-    peerInputText.disabled = false;
-    peerInputButton.disabled = false;
-    sendInviteButton.disabled = false;
-    emailText.disabled = false;
-    twoWayCallDiv.disabled = true;
-}
-function connectedEnableUI() {
-    chatInputButton.disabled = false;
-    callButton.disabled = false;
-    chatInputText.disabled = false;
-    // disable new connection UI - in future we should handle multiple connections
-    peerInputButton.disabled = true;
-    peerInputText.value = conn.peer;
-    peerInputText.disabled = true;
-    sendInviteButton.disabled = true;
-    emailText.disabled = true;
-    twoWayCallDiv.disabled = false;
-}
-
-// create HTML for each MediaDevice
-function createDeviceHTML(dev) {
-    var strRet = "<div class='device'>";
-
-//    seeObj(dev);
-//    var cap = dev.getCapabilities();
-//    console.log("Capabilities: ");
-//    seeObj(cap);
-//    strRet += dev.label + "</div>";
-    return strRet;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// MediaStreamTrack
-//
-
-// called when the mic is muted
-function onStreamMuted() {
-    console.log("in onStreamMuted");
-    micImgDiv.src = micImgOff;
-}
-
-function setStream(s) {
-    audioLocalDevice.srcObject = s;
-    //audioContext.createMediaStreamSource(s);
-    audioContext.onmuted = onStreamMuted;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-//
-// UserMedia functions
-//
-//
-
-// getUserMedia worked
-function onUserMediaSuccess(s) {
-  //  console.log("User has granted access to local media.");
-    currentMode = MODE.SPLASH;
-    enableUI();
-    stream = s;
-    var msta = stream.getAudioTracks();
- //   console.log("Found " + msta.length + " audio track(s)");
-    msta.forEach(createDeviceHTML);
-    getList();
-    setupAudio();
-    setStream(stream);
-    // audio meter
-    mediaStreamSource = audioContext.createMediaStreamSource(s);
-    // Create a new volume meter and connect it.
-    audioMeterLocal = createAudioMeter(audioContext);
-    mediaStreamSource.connect(audioMeterLocal);
-
-    // kick off the visual updating
-    onLevelChange();
-}
-
-// update the audio meter
-function onLevelChange2(time){
-    // clear the background
-    audioMeterCanvas.clearRect(0, 0, METER_WIDTH, METER_HEIGHT);
-
-    // check if we're currently clipping
-    if (audioMeter.checkClipping()) {
-        audioMeterCanvas.fillStyle = "red";
-    }
-    else {
-        audioMeterCanvas.fillStyle = "green";
-    }
-
-    // draw a bar based on the current volume
-    audioMeterCanvas.fillRect(0, 0, audioMeter.volume * METER_WIDTH * 1.4, METER_HEIGHT);
-
-    // set up the next visual callback
-    rafID2 = window.requestAnimationFrame(onLevelChange2);
-}
-
-// update the audio meter
-function onLevelChange(time){
-    // clear the background
-    audioMeterCanvasLocal.clearRect(0, 0, METER_WIDTH, METER_HEIGHT);
-
-    // check if we're currently clipping
-    if (audioMeterLocal.checkClipping()) {
-        audioMeterCanvasLocal.fillStyle = "red";
-    }
-    else {
-        audioMeterCanvasLocal.fillStyle = "green";
-    }
-
-    // draw a bar based on the current volume
-    audioMeterCanvasLocal.fillRect(0, 0, audioMeterLocal.volume * METER_WIDTH * 1.4, METER_HEIGHT);
-
-    // set up the next visual callback
-    rafID = window.requestAnimationFrame(onLevelChange);
-}
-
-// getUserMedia failed -- abort
-function onUserMediaError(err) {
-    console.log(err);
-    fail(err);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Utility functions
-//
-
-function statusReport(str) {
-    statusReportDiv.innerHTML = str;
-    statusReportDiv.classList.add('show');
-    setTimeout(function(){ statusReportDiv.classList.remove('show'); }, 3000);
-}
-
-function errorReport(err) {
-    errorReportDiv.innerHTML = err;
-    errorReportDiv.classList.add('show');
-    setTimeout(function(){ errorReportDiv.classList.remove('show'); }, 3000);
-}
-
-function debugLog(str) {
-    if (debugLevel === "3") {
-        console.log(str);
-    }
-    //errorReportDiv.innerHTML = str;
-}
-// fail completely -- disables the UI and shows error message
-// called if the browser can't handle it and there's no point in continuing
-function fail(err) {
-    document.getElementById("loading").innerHTML =
-        "<img src=\"images/P2P-logo.svg\" /><h1>P2PStudio aborted</h1><p>Browser reported: "
-            + err + "</p><p>P2PStudio requires a modern, standard-compliant, WebRTC enabled browser such as Chrome, Firefox or Opera...</p>";
-    disableUI();
-}
-
-// write an object to the console
-function seeObj(o) { for (var x in o) console.log(x + ":" + o[x]); }
-
-function disableUI() {
-    contentDiv.style.visibility = "hidden";
-    contentDiv.style.opacity = "0";
-    loadingDiv.style.visibility = "visible";
-    loadingDiv.style.visibility = "1";
-}
-function enableUI() {
-    switch (currentMode) {
-        case MODE.SPLASH:
-            mainMenuDiv.style.visibility = "visible";
-            mainMenuDiv.style.opacity = "1";
-            loadingDiv.style.visibility = "hidden";
-            loadingDiv.style.opacity = "0";
-            contentDiv.style.visibility = "hidden";
-            contentDiv.style.opacity = "0";
-            P2PStudioDiv.style.visibility = "hidden";
-            P2PStudioDiv.style.opacity = "0";        
-            CallInDiv.style.visibility = "hidden";
-            CallInDiv.style.opacity = "0";     
-            break;
-        case MODE.P2PSTUDIO:
-            mainMenuDiv.style.visibility = "hidden";
-            mainMenuDiv.style.opacity = "0";
-            loadingDiv.style.visibility = "hidden";
-            loadingDiv.style.opacity = "0";
-            contentDiv.style.visibility = "hidden";
-            contentDiv.style.opacity = "0";
-            P2PStudioDiv.style.visibility = "visible";
-            P2PStudioDiv.style.opacity = "1";
-            CallInDiv.style.visibility = "hidden";
-            CallInDiv.style.opacity = "0";     
-        break;
-        case MODE.CALL_IN:
-            mainMenuDiv.style.visibility = "hidden";
-            mainMenuDiv.style.opacity = "0";
-            loadingDiv.style.visibility = "hidden";
-            loadingDiv.style.opacity = "0";
-            contentDiv.style.visibility = "hidden";
-            contentDiv.style.opacity = "0";
-            P2PStudioDiv.style.visibility = "hidden";
-            P2PStudioDiv.style.opacity = "0";   
-            CallInDiv.style.visibility = "visible";
-            CallInDiv.style.opacity = "1";     
-        break;
-        default:
-        // turn off advisory and enable UI
-            mainMenuDiv.style.visibility = "hidden";
-            mainMenuDiv.style.opacity = "0";
-            contentDiv.style.visibility = "visible";
-            contentDiv.style.opacity = "1";
-            loadingDiv.style.visibility = "hidden";
-            loadingDiv.style.opacity = "0";
-            P2PStudioDiv.style.visibility = "hidden";
-            P2PStudioDiv.style.opacity = "0";        
-            CallInDiv.style.visibility = "hidden";
-            CallInDiv.style.opacity = "0";     
-        break;
-    }   
-}
-// write a message to a Div
-function writeIt(divID, txt) {
-    divID.innerHTML = txt;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Document GUI interaction functions
-//
-//
-function updateAudioParameters(){
-    var sm = stereoMono.checked ? 2 : 1;
-
-    constraints = {
-        autoGainControl: false,
-        channelCount: sm,
-        echoCancellation: false,
- //       latency:
-        noiseSuppression: false,
-        sampleRate: brSlider.value,
-        sampleSize: 16
-//        volume:
-    };
-    const track = stream.getAudioTracks()[0];
-    //console.log(track.getConstraints().sampleRate);
-    track.applyConstraints(constraints).
-        then(function() {
-            // success!
-            debugLog("Successfully updated audio parameters");
-            //console.log(track.getConstraints().sampleRate);
-
-        }
-        ).catch(function(err) {
-            debugLog("Could not update audio settings!");
-        }
-        );
-}
-function bitrateChange() { // called when bitrate slider is moved
-    bitrate = brSlider.value;
-    writeIt(brDiv, "Bitrate: " + bitrate + " kbps");
-  // TODO: update audio bitrate
-    updateAudioParameters();
-}
-// input select has been changed to indicate using a different input device
-function onInputDeviceChanged(idx){
-    debugLog("input select: " + inputSelect.selectedIndex);
-    // TODO: set input device
-
-}
-function onOutputDeviceChanged(idx){
-    debugLog("output select: " + outputSelect.selectedIndex);
-    // TODO: set output device
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
-//
-// Setup functions
-//
-//
-
-// Fills device lists for audio input and output
-function getList() {
-  navigator.mediaDevices.enumerateDevices()
-    .then(function(devices) {
-        inputSelect = document.getElementById("inputSelect");
-        inputSelect.remove(0);
-        inputSelect.onchange = onInputDeviceChanged;
-        outputSelect = document.getElementById("outputSelect");
-        outputSelect.remove(0);
-        outputSelect.onchange = onOutputDeviceChanged;
-        var numInputs = 0, numOutputs = 0;
-        devices.forEach(function(device) {
-          if (device.kind === "audioinput") {
-            var opt = document.createElement("option");
-            opt.text = device.label + " id = " + device.deviceId;
-            inputSelect.add(opt);
-            numInputs++;
-          } else if (device.kind === "audiooutput") {
-            var opt = document.createElement("option");
-            opt.text = device.label + " id = " + device.deviceId;
-            outputSelect.add(opt);
-            numOutputs++;
-          }
-        });
-        if (numInputs > 1) {
-          inputSelect.disabled = false;
-        }
-        if (numOutputs > 1) {
-          outputSelect.disabled = false;
-        }
-        })
-        .catch(function(err) {
-            fail(err.name + ": " + err.message);
-        }
-    );
-}
-
-/////////////////////////////
-//
-//
-function sendChat(val) {
-    if (val === ""){
-        debugLog("Nothing to send in sendChat...");
-        return;
-    }
-    if (conn === null || conn === undefined) {
-        debugLog("No connection...");
-        return;
-    }
-    if (!conn.open) { // connection lost
-        debugLog("No connection in sendChat");
-        delete connectedPeers[conn.peer];
-        // remove from html list
-        createPeerList(conn);
-        return;
-    }
-    conn.send(val);
-    chatInputText.value = "";
-    chatDiv.innerHTML += "<span class='outgoingText'>Me : " + val + "</span></br>";
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-}
-//
-function callPeer() {
-    if (!conn){
-        debugLog("No connection. Ignoring request to call.");
-        return;
-    }
-    // TODO: check if already in a call
-    callRemotePeer(conn.peer, stream);
-}
-//
-function sendInviteByEmail(){
-    invitePeerByEmail(document.getElementById('emailText').value);
-}
-
-function launchP2PStudio(){
-    currentMode = MODE.P2PSTUDIO;
-    enableUI();
-
-}
-function launchCallIn() {
-    currentMode = MODE.CALL_IN;
-    enableUI();
-}
-var onAir = false;
-
-function onAirClick(){
-    if (onAir) {
-        onAir = false;
-        onAirDiv.style.color = "grey";
-        document.getElementById("onAirText").innerText = "OFF AIR";
-      //  onAirDiv.style.borderColor = "black";
-    } else {
-        onAir = true;
-        onAirDiv.style.color = "red";
-        document.getElementById("onAirText").innerText = "ON AIR";
-     //   onAirDiv.style.borderColor = "black";
-    }
-}
-function backToMenu(){
-    currentMode = MODE.SPLASH;
-    enableUI();
-}
-
-var callers = [];
-class Caller {
-    name ="";
-    constructor(n){
-        name = n;
-    }
-    writeHTML(){
-        return "<div>"+name+"<img src=''></div>";
-    }
-}
-function addCaller(n){
-    callListDiv.innerHTML = "";
-    l=callers.length;
-    callers[l] = new Caller(n);
-}
-function rrlOnClick() {
-    backToMenu();
-}
-/////////////////////////////////////////////////////////////////////////////////////
-//
-//
-// called when window has loaded
-//
-window.onload = function() {
-    // load UI DOM objects into global variables
-    errorReportDiv = document.getElementById("errorReportDiv");
-    if (util.browser === "Unsupported") {
-        errorReport("Unsupported browser. Trying anyway...");
-    }
-    statusReportDiv = document.getElementById("statusReportDiv");
-
-    pidDiv = document.getElementById("PeerID");
-    browserInfoDiv = document.getElementById("browserInfoDiv");
-  //  browserInfoDiv.innerHTML = "Browser: " + util.browser + ", Supports media: " + util.supports.audioVideo
-  //      + ", Supports data: " + util.supports.data + ", Binary: " + util.supports.binary + ", Reliable: " + util.supports.reliable;
-    contentDiv = document.getElementById("content");
-    loadingDiv = document.getElementById("loading");
-    mdilistDiv = document.getElementById("MediaInputDevicesList");
-    mdolistDiv = document.getElementById("MediaOutputDevicesList");
-    callListDiv = document.getElementById("callListDiv");
-
-    remoteRadioLogo = document.getElementById("RemoteRadioLogo");
-    remoteRadioLogo.onclick = rrlOnClick;
-
-    mainMenuDiv = document.getElementById("main_menu");
-    launchP2PStudioDiv = document.getElementById("launchP2PStudioDiv");
-    launchCallInDiv = document.getElementById("launchCallInDiv");
-    launchCallInDiv.onclick = launchCallIn;
-    launchP2PStudioDiv.onclick = launchP2PStudio;
-    P2PStudioDiv = document.getElementById("P2PStudioDiv");
-    CallInDiv = document.getElementById("CallInDiv");
-    onAirDiv = document.getElementById("onAirDiv");
-    onAirDiv.onclick = onAirClick;
-
-    brDiv = document.getElementById("Bitrate");
-    brSlider = document.getElementById("brSlider");
-    micImgDiv = document.getElementById("MicImg");
-    micImgDiv.onmouseover = function() {
-        // change image colour
-    };
-    micImgDiv.onclick = function() {
-        if (micImgDiv.src === micImgOn.src) {
-            micImgDiv.src = micImgOff.src;
-			micMuted = true;
-            // turn off audio input
-        } else {
-			micMuted = false;
-            micImgDiv.src = micImgOn.src;
-            // enable audio input
-        }
-    };
-    connectedPeersList = document.getElementById("connectedPeersList");
-    connectionLinkText = document.getElementById("connectionLinkText");
-    connectionLinkText.onclick = function(){
-        connectionLinkText.select();
-        /* Copy the text inside the text field */
-        document.execCommand("Copy");
-        statusReport("Copied " + connectionLinkText.value + " to clipboard.");
-    }
-    chatInputText = document.getElementById("chatInputText");
-    chatInputText.onkeyup = function(e) {
-        if (e.key === "Enter"){
-            sendChat(chatInputText.value);
-        }
-    };
-    chatInputButton = document.getElementById("chatInputButton");
-    chatInputButton.onclick = function() {
-        sendChat(chatInputText.value);
-    };
-    peerInputText = document.getElementById("peerInputText");
-    peerInputText.onkeyup = function(e){
-
-    }
-    peerInputButton = document.getElementById("peerInputButton");
-    peerInputButton.onclick = function() {
-        if (peerInputText.value === "") return;
-        connectToPeer(peerInputText.value);
-    };
-    chatDiv = document.getElementById("chatDiv");
-    callButton = document.getElementById("callButton");
-    callButton.onclick = callPeer;
-
-    emailText = document.getElementById("emailText");
-    sendInviteButton = document.getElementById("sendInviteButton");
-    sendInviteButton.onclick = function (){
-        invitePeerByEmail();
-    };
-    stereoMono = document.getElementById("stereoMono");
-    stereoMono.checked = isStereo;
-    stereoMono.onclick = function() {
-        updateAudioParameters();
-    };
-    twoWayCallDiv = document.getElementById("twoWayCall");
-    twoWayCallDiv.onchange = function(){
-        twoWayCall = twoWayCallDiv.checked;
-    //    console.log(twoWayCallDiv.checked);
-    };
-    twoWayCallDiv.checked = twoWayCall;
-    // disabled UI as we're not connected yet
-    unconnectedDisableUI();
-
-    // load images
-    micImgOn = new Image();
-    micImgOn.src = "images/Feather-core-mic.svg";
-    micImgOff = new Image();
-    micImgOff.src = "images/Feather-core-mic-off.svg";
-    micImgDiv.src = micMuted ? micImgOff.src : micImgOn.src;
-
-    audioLocalDevice = document.getElementById("audioLocalDevice");
-    audioMeterCanvasLocal = document.getElementById("audioMeterLocal").getContext("2d");
-    audioIncomingStream = document.getElementById("audioIncomingStream");
-    audioMeterCanvas = document.getElementById("audioMeter").getContext("2d");
-
-    recordButton = document.getElementById("recordButton");
-    stopButton = document.getElementById("stopButton");
-    stopButton.onclick = stopButtonOnClick;
-    recordButton.onclick = recordButtonOnClick;
-    // work around new Chrome rule that requires user interaction to start AudioContext
-   var resumeAudio = function() {
-      if (audioContext == null) audioContext = new window.AudioContext();
-      if (audioContext.state == "suspended") audioContext.resume();
-      document.removeEventListener("click", resumeAudio);
-   };
-   document.addEventListener("click", resumeAudio);
-
-    // load any saved values (from config.js) into UI components
-    brSlider.value = bitrate;
-    writeIt(brDiv, "Bitrate: " + bitrate + " kbps");
-    // see if browser supports device enumeration
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        writeIt(mdilistDiv, "enumerateDevices() not supported.");
-        return;
-    }
-    if (isEdge || isIE || isSafari) {
-        fail("Unsupported Browser!");
-    } else {
-        // get user media - audio only
-        navigator.mediaDevices.getUserMedia({audio:true}).then(onUserMediaSuccess).catch(onUserMediaError);
-        // Peer.js object creation
-        //peer = new Peer({ key: PEERJS_API_KEY, debug: debugLevel });
-        peer = new Peer(/*"p2p_"+Math.floor(Math.random()*100000), */{ host: SERVER, port:'', debug: debugLevel });
-        // add callbacks to peer
-        peerHandler = new PeerHandler(peer);
-        var params = new URLSearchParams(window.location.search);
-        if (params.has("c")) { // this is a connection from email source
-            // new peer connection to the id in c
-            connectToPeer(params.get("c"));
-            invited = true;
-        }
-    }
-};
-
-window.onbeforeunload = function() {
-  // TODO: test if connected
-  if (isConnected) {
-      return("Leaving!");
   }
-};
+
+  var types = [
+    "audio/ogg", 
+    "audio/webm", 
+    "audio/webm;codecs=opus", 
+    "audio/mp3",
+    "audio/wav",
+    "audio/ogg;codecs=opus",
+    "audio/mp4",    // safari
+  ];
+  var d = document.getElementById("audioFormats");
+  d.addEventListener("input", chooseAudioFormat);
+  var supportedTypes = [];
+  for (var i in types) {
+    if (MediaRecorder.isTypeSupported(types[i])) {
+      supportedTypes.push(types[i]);
+    }
+  }
+  supportedTypes.forEach((type) => {
+      let o = document.createElement("option");
+      o.text = type;
+      audioFormats.appendChild(o);
+    }
+  );
+}
+
+function chooseAudioFormat(af) {
+  theRecorder.recordingFormat = af.target.value;
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (theRecorder.hasRecorded && !theRecorder.hasDownloaded) {
+    e.preventDefault();
+    return (e.returnValue = "You haven't downloaded your recording. Are you sure you want to leave the page..?");
+  }
+});
+
+class DragElement {
+  constructor(elmnt) {
+    this.elmnt = elmnt;
+    this.pos1 = 0, this.pos2 = 0, this.pos3 = 0, this.pos4 = 0;
+    if (document.getElementById(elmnt.id + "Header")) {
+    // if present, the header is where you move the DIV from:
+      let d = document.getElementById(elmnt.id + "Header");
+      this.onmousedown = this.dragMouseDown.bind(this);
+      d.addEventListener("pointerdown", this.onmousedown);
+    } else {
+      // otherwise, move the DIV from anywhere inside the DIV:
+      elmnt.addEventListener("pointerdown", (e) => this.dragMouseDown(e));
+    }
+  }
+  dragMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // get the mouse cursor position at startup:
+    this.pos3 = e.clientX;
+    this.pos4 = e.clientY;
+    this.onmouseup = this.closeDragElement.bind(this);
+    document.addEventListener("pointerup", this.onmouseup);
+    // call a function whenever the cursor moves:
+    this.onmousemove = this.elementDrag.bind(this);
+    document.addEventListener("pointermove", this.onmousemove);
+  }
+
+   elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    // calculate the new cursor position:
+    this.pos1 = this.pos3 - e.clientX;
+    this.pos2 = this.pos4 - e.clientY;
+    this.pos3 = e.clientX;
+    this.pos4 = e.clientY;
+    // set the element's new position:
+    this.elmnt.style.top = (this.elmnt.offsetTop - this.pos2) + "px";
+    this.elmnt.style.left = (this.elmnt.offsetLeft - this.pos1) + "px";
+  }
+
+  closeDragElement() {
+    // stop moving when mouse button is released:
+    document.removeEventListener("pointerdown", this.onmousedown);
+    document.removeEventListener("pointermove", this.onmousemove);
+  }
+}
+
+window.addEventListener('online', () =>  {
+  RRDebug('Became online');
+});
+window.addEventListener('offline', () => {
+  // TODO - handle gracefully going off line including any connections and incoming media streams...
+  // set up reconnection
+  RRDebug('Became offline');
+});

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="RRVolumeMeter.js"></script>
+<script src="RRLimiter.js"></script>
+<script src="Recorder.js"></script>
+<script src="Player.js"></script>
+<script>
+window.onload=function(){
+	new RRRecorder();
+	for (var i=0;i<=7;i++){
+		new RRPlayer();
+	}
+}
+</script>
+<link rel="stylesheet" href="RRStyles.css" language="text/css" />
+</head>
+<body>
+<div id="header">
+<h1>Remote Radio</h1>
+</div>
+<!-- display current connection to the studio status - edit config.js for your studio -->
+<div id="studioConnection">
+Connection Status: <span id="studioConnectionStatus">Not Connected</span>
+ | <button value="Connect">Connect</button>
+ | <button value="Settings" class="settingsButton" id="connectionSettingsButton"></button>
+</div>
+<h1>Songs</h1>
+<div id="main"></div>
+<!-- <button onclick="javascript: new RRPlayer()">Click me!</button> -->
+<!-- <div class="controls">
+  <span>Maximize</span>
+  <input type="range" value="0" step="1" min="0" max="12" id="RR_range" />
+  <span class="value" id="RR_maximize-db">6</span> <span class="unit">dB</span>
+  <div id="RR_reduction"></div>
+</div> -->
+<div id="limiters"></div>
+<div id="presenters">
+	<div id="Microphones"> 
+		<div class="Microphone" id="Mic_1"><button value="Settings" class="settingsButton" id="connectionSettingsButton"></button>
+</div>
+		
+	</div>
+<!-- incoming stream to be implemented -->
+</div>
+<h1>Samplers</h1>
+<div id="samplers"></div>
+
+<div class="RRRecorder" id="RRRecorder">
+<!-- <canvas title="Recording levels for the input device (stay out of the red)" id="audioCanvas" width="300" height="50"></canvas> -->
+<br clear = "all" />
+<div class="transport">
+<div class="recordButton" id="recordButton"></div>
+<div class="stopButton" id="stopButton"></div>
+<div class="playButton" id="playButton"></div>
+</div>
+<a id="downloadLink">Download</a>
+<audio id="audioElement" controls></audio>
+</div>
+<!-- RECORDER -->
+
+<hr />
+<div id="footer">Remote Radio &copy; 2020</div>
+</body>
+</html>

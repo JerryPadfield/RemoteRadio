@@ -573,10 +573,9 @@ Negotiator._setupListeners = function(connection, pc, pc_id) {
 
   // MEDIACONNECTION.
   util.log("Listening for remote stream");
-//  pc.onaddstream = function(evt) { // JERRY - deprecated
-	pc.ontrack = function(evt) {
-    util.log("Received remote track");
-    var stream = evt.streams[0];
+  pc.onaddstream = function(evt) {
+    util.log("Received remote stream");
+    var stream = evt.stream;
     var connection = provider.getConnection(peerId, connectionId);
     // 10/10/2014: looks like in Chrome 38, onaddstream is triggered after
     // setting the remote description. Our connection object in these cases
@@ -1519,14 +1518,7 @@ Socket.prototype.close = function() {
 module.exports = Socket;
 
 },{"./util":8,"eventemitter3":9}],8:[function(require,module,exports){
-var defaultConfig = { iceServers: [{ 
-  urls: ["stun:stun.l.google.com:19302",
-  'stun:stun01.sipphone.com',
- // 'stun:stun.ekiga.net',
-  //"relay.backups.cz",
-  //"numb.viagenie.ca"
-  ],
-}] };
+var defaultConfig = { iceServers: [{ url: "stun:stun.l.google.com:19302" }] };
 var dataCount = 1;
 
 var BinaryPack = require("js-binarypack");

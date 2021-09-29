@@ -2,52 +2,81 @@
 <html lang="en-GB">
 <head>
 	<!--
-	    P2PStudio - an Open Source Peer to Peer streaming solution, primarily 
+	    Remote Radio - an Open Source Peer to Peer streaming solution, primarily 
 	    aimed at Community Radio stations.
-	    maintained at: https://github.com/JerryPadfield/P2PStudio
+	    maintained at: https://github.com/JerryPadfield/RemoteRadio
 	 -->
-	<title>P2PStudio - Help</title>
-	<link rel="stylesheet" href="css/P2PStudio.css" type="text/css" />
+	<title>Remote Radio - Help</title>
+	<link rel="stylesheet" href="css/RRStyles.css" type="text/css" />
 </head>
 <body>
-<h1 id="logo">P2PStudio - Help</h1>
+<h1 id="logo">Remote Radio - Help</h1>
 <ul>
 	<li><a href="#introduction">Introduction</a></li>
 	<li><a href="#gettingstarted">Getting Started</a></li>
     <li><a href="#tech">Technical Details</a></li>
 	<li><a href="#credits">Credits</a></li>
 </ul>
-<p>P2PStudio requires a modern browser capable of supporting WebRTC and the Opus codec. Current compatibility is as follows:
+<p>Remote Radio requires an up-to-date browser capable of supporting WebRTC and the Opus codec. Current compatibility is as follows:
 </p>
 <table>
 <thead>
-	<tr><th>Supported</th><th>Unsupported</th></tr>
+	<tr><th>Full Support</th><th>Some support</th><th>Unsupported</th></tr>
 </thead>
 <tbody>
-	<tr><td>Chrome</td><td>Edge, Internet Explorer</td></tr>
+	<tr><td>Chrome</td><td>Safari (no MediaRecorder or WebRTC)</td><td>All other browsers...</td></tr>
+	<tr><td>Firefox</td><td>&nbsp;</td><td></td></tr>
+	<tr><td>MS Edge</td><td></td><td></td></tr>
 </tbody>
 </table>
 <hr />
 <a name="gettingstarted"></a><h2>Getting Started</h2>
-<p>In order to start firstly you must enable audio in your browser for the P2PStudio web page.
- In Chrome this is done by clicking allow on the dialogue box which appears when the page first loads.
+<p>In order to start firstly you must enable audio in your browser for the Remote Radio web page.
+ This is done by clicking allow on the dialogue box which appears when the page first loads.
 </p>
 <p>
-After you have enabled audio the user interface will appear. Copy the link from the text box.
-Send this to the peer you wish to connect with via email, sms or your preferred means. 
-You should now be connected and be able to chat via the chat interface to arrange when to connect etc.
-Press the call button to start audio transfer.</p>
+After you have enabled audio the user interface will appear.</p>
+<h2>The Sections of Remote Radio</h2>
+<h3>Connection</h3>
+<img src="images/Help-Connection.png" />
+<p>This shows your current connection status, allows you to connect to the studio and allows you to change connection settings. It is not recommended to change connection settings unless you are an administrator.</p>
+<p> If you are offline or unable to connect to Remote Radio, this section will show Disconnected. When you are connected to Remote Radio and ready to establish a connection to the studio, it will show Ready... At this point you can click the connect button to connect to the studio. The status will show Connecting... as it tries to establish a connection to the studio and Connected in green when a connection has been established. If at any point you lose the connection to the studio, this section will reflect that.
+<h3>Meter</h3>
+<img src="images/Help-Meter.png" />
+<p>This section shows you the overall levels. The settings button on the right will allow you to change where the audio is output to on the local computer. If this meter is constantly red, you are probably too loud...</p>
+<h3>Songs</h3>
+<img src="images/Help-Songs.png" />
+<p>This section allows you to play two audio files, and crossfade between them. Click on a &quot;deck&quot; to load the file, and again to play the file. Click the eject button to remove the audio file. The deck will be grey when empty, blue when a file is loaded, green when a file is playing and red when a file is within 10 seconds of finishing. Each deck has a gain control, which allows you to adjust the volume. Each deck has a limiter, so you don't need to worry about clipping.</p>
+<p>There are keyboard shortcuts for the decks & crossfader: For the left deck A will load/play a file and Q will eject, for the right deck L loads/plays and P ejects. You can use the left and right arrow keys to move the crossfader. Double clicking on the crossfader will reset it.</p>
+<h3>Carts</h3>
+<img src="images/Help-Carts.png" />
+<p>
+The carts play any audio file and are meant to be used for jingles, idents, etc. They work similarly to the decks. You can trigger each cart using the number keys, where 1 represents the leftmost cart.
+</p>
+<h3>Recorder</h3>
+<img src = "images/Help-Recorder.png" />
+<p>
+ A simple recorder to record your show. Press the record button once to start recording. This will flash red/orange to show recording is in progress and a timer will appear in the bottom right of the screen like this:
+</p>
+<img src="images/Help-Timer.png" />
+<p>
+    If you press the record button again you can pause your recording (button will become orange). Just press the record button again to resume recording. When you have finished recording you can download your recording from the download link. IMPORTANT: you must remember to do this - if you close the page or start recording again you will lose your recording...
+</p>
+<p>
+    You can change the name that the recording will be saved to by clicking the settings button in the recorder. Here you can also specify whether to add the date to the end of the recording title. You can also change the recording mode (not currently implemented).
+</p>
+<hr />
 <a name="tech"><h2>Technical Details</h2></a>
-<p>P2PStudio uses a heroku hosted PeerJS server - you can create your own.</p>
+<p>Remote Radio uses a heroku hosted PeerJS server - you can create your own.</p>
 <a name="credits"><h2>Credits</h2></a>
-<p>P2PStudio was created by Jerry Padfield as part of research into ways to broaden participation in community radio
+<p>Remote Radio was created by Jerry Padfield as part of research into ways to broaden participation in community radio
 using open source software, convergence culture and digital technology during his PhD at <a href="http://falmouth.ac.uk">
 University of Falmouth</a>.</p>
-<p>P2PStudio uses peer.js, feather icons, volume meter.</p>
-<p>P2PStudio is released under the Creative Commons License 4.0.</p>
+<p>Remote Radio uses peer.js, feather icons, volume meter.</p>
+<p>Remote Radio is released under the MIT License.</p>
 <hr />
-<div id="footer">
-P2PStudio is released under the <a href="">Creative Commons License</a>. It uses <a href="">Peer.js</a>. Images are from <a href="">here</a>. Visit its <a href="https://github.com/JerryPadfield/P2PStudio">home on Github</a>.
+<div class="footer">
+Remote Radio is released under the <a href="">MIT License</a>. It uses <a href="">Peer.js</a>. Images are from <a href="">here</a>. Visit its <a href="https://github.com/JerryPadfield/RemoteRadio">home on Github</a>.
 </div>
 </body>
 </html>

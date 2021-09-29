@@ -4,86 +4,6 @@
  *
  *
  */
- .close {
-  display: none;
- }
- .callerDiv {
-  border: 1px solid black;
-  border-radius: 5px;
-  margin:auto;
-  font-weight: bold;
- }
- #recordDiv tr {
-  margin: auto;
-  text-align: center;
- }
- #recordButton {
-  stroke: red;
-  fill: 100px;
- }
- #StudioLogo {
-  font-weight: bold;
-  font-size: 24pt;
- }
-#main_menu {
-  visibility: hidden;
-  margin: auto;
-  min-width: 600px; /* Set a default minimum width */
-  margin-left: -300px; /* Divide value of min-width by 2 */
-  background-color: transparent; /* Black background color */
-  text-align: center; /* Centered text */
-    padding: 12px; /* Padding */
-    position: fixed; /* Sit on top of the screen */
-    z-index: 1; /* Add a z-index if needed */
-    left: 50%;      /* Center the snackbar */
-    top: 50px;   /* 30px from the bottom */
-
-}
-#launchP2PStudioDiv {
-  text-align: center; /* Centered text */
-  border: solid black;
-  background-color: white;
-    border-radius: 25px; /* Rounded borders */
-    padding: 6px; /* Padding */
-}
-#launchCallInDiv {
-  background-color: white;
-  margin: auto;
-  text-align: center; /* Centered text */
-  border: solid black;
-    border-radius: 25px; /* Rounded borders */
-    padding: 6px; /* Padding */
-}
-#P2PStudioDiv {
-  visibility: hidden;
-  margin: auto;
-  min-width: 600px; /* Set a default minimum width */
-  margin-left: -300px; /* Divide value of min-width by 2 */
-  background-color: #ffffff; /* Black background color */
-  text-align: center; /* Centered text */
-  border: solid black;
-    border-radius: 5px; /* Rounded borders */
-    padding: 16px; /* Padding */
-    position: fixed; /* Sit on top of the screen */
-    z-index: 1; /* Add a z-index if needed */
-    left: 50%;      /* Center the snackbar */
-    top: 80px;   /* 30px from the bottom */
-}
-#CallInDiv {
-  visibility: hidden;
-  margin: auto;
-  min-width: 600px; /* Set a default minimum width */
-  margin-left: -300px; /* Divide value of min-width by 2 */
-  background-color: #ffffff; /* Black background color */
-  text-align: center; /* Centered text */
-  border: solid black;
-    border-radius: 5px; /* Rounded borders */
-    padding: 16px; /* Padding */
-    position: fixed; /* Sit on top of the screen */
-    z-index: 1; /* Add a z-index if needed */
-    left: 50%;      /* Center the snackbar */
-    top: 80px;   /* 30px from the bottom */
-}
 #callButton {
     cursor: pointer;
 }
@@ -167,21 +87,6 @@ audio {
 /*
  * Tells the user any errors
  */
- #studioHeaderDiv {
-  border: 1px solid black;
- }
- 
- #onAirDiv {
-  border: double black 5px;
-  border-radius: 5px;
-  font-size: 24pt;
-  font-weight: bold;
-  cursor: pointer;
-  width: 50%;
-  margin:auto;
-  color: grey;
- }
-
 #errorReportDiv {
     font-size: small;
     color: red;
@@ -195,7 +100,7 @@ audio {
     border-radius: 5px; /* Rounded borders */
     padding: 16px; /* Padding */
     position: fixed; /* Sit on top of the screen */
-    z-index: 100; /* Add a z-index if needed */
+    z-index: 1; /* Add a z-index if needed */
     left: 50%; /* Center the snackbar */
     bottom: 30px; /* 30px from the bottom */
 }
@@ -339,13 +244,6 @@ However, delay the fade out process for 2.5 seconds */
   */
   padding: 2px;
 }
-div.headerDiv {
-  position: fixed;
-  margin:auto;
-  top: -10;
-  width: 100%;
-  left: 0;
-}
 /* 
  * Header at the top of a column
  */
@@ -385,13 +283,6 @@ p.header {
  */
 h1#logo {
   font-family: Rockwell;
-  background-color: #80c683;
-  border-top: solid #509455 20px;
-  width: 100%;
-  top:0;
-  margin-auto;
-  position: fixed;
-  left:0;
 }
 div#InputDiv {
   border: 2px solid black;
@@ -450,46 +341,3 @@ div#OutputDiv select {
   font-size: smaller;
   text-align: center;
 }
-
-/*
- * Side menu
- */
- .sidenav {
-  height: 100%;
-  width: 0;
-  position: fixed;
-  z-index: 1;
-  top: 0;
-  left: 0;
-  background-color: #111;
-  opacity: 0.8;
-  overflow-x: hidden;
-  padding-top: 60px;
-  transition: 0.5s;
- }
- .sidenav a {
-  padding: 8px 8px 8px 32px;
-  text-decoration: none;
-  font-size: 25px;
-  color: #818181;
-  display: block;
-  transition: 0.3s;
- }
- .sidenav a:hover {
-  color: #f1f1f1;
- }
- .sidenav .closebtn {
-  position: absolute;
-  top: 0;
-  right: 25px;
-  font-size: 36px;
-  margin-left: 50px;
- }
-#launchP2PStudioDiv #launchCallInDiv {
-    cursor: pointer;
-}
-
- @media screen and (max-height: 450px) {
-  .sidenav {padding-top: 15px;}
-  .sidenav a { font-size: 18px; }
- }

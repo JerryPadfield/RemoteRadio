@@ -1,0 +1,736 @@
+/* 
+ * RRStyles.css
+ *
+ */
+body, p div {
+    font-family: Raleway, Calibri, Verdana, Sans;
+    margin: 10px;
+}
+@keyframes fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes fade-out {
+  0%   { opacity: 1; }
+  99% { opacity: 0; }
+  100% { display:none;visibility: hidden; bottom: 0; }
+}
+div#notSupported {
+  position: fixed;
+  top: 200;
+  width: 50%;
+  left: 25%;
+  margin: auto;
+  padding: 10px;
+  background-color: white;
+  z-index: 2000;
+  border: 5px solid black;
+  animation: fade-in 1s linear;
+}
+div#notSupported.byebye {
+ display: none;
+}
+
+dialog::backdrop { 
+  backdrop-filter: blur(2px);
+}
+dialog {
+background:  black;
+}
+div#RemoteRadio {
+
+}
+
+div#badBrowser {
+    display:none;
+  visibility: hidden;
+  background-color: white;
+}
+.disabledRR {
+    filter: blur(3px);
+   pointer-events: none;
+   key-events: none;
+}
+.notDisplayed {
+    display: none;
+}
+/*
+ * Dialog box to choose connection
+ */
+ dialog#outputSettingsDialog {
+    background-image: url(../images/RemoteRadio-logo.svg);
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: 10%;
+ }
+
+dialog#settingsDialog {
+    /* background-color: grey; */
+    background-image: url(../images/RemoteRadio-logo.svg);
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: 10%;
+}
+table, td, th {
+    border: 1px solid grey;
+    border-collapse: collapse;
+}
+#songs {
+   /*  border: 2px solid black; */
+    background-color: heliconia;
+}
+#songs h1 {
+    padding: 0;margin: 0;
+}
+
+h1, h2, h3 {
+font-family: Rokkitt, Rockwell, Impact;
+}
+
+#meter {
+ /*  border: 2px solid black; */
+  border-radius: 5px;
+  margin: 5px;
+  min-width: 90%;
+  min-height: 40px;
+  margin: auto;
+  background-color: green;
+  position: relative;
+}
+
+@keyframes flash {
+  0%   {background-color:red; }
+  50%  {background-color:yellow;}
+  100% { background-color: red; }
+}
+@keyframes connectedFlash {
+  0%   {background-color: green; }
+  50%  {background-color: yellow;}
+}
+@keyframes flashRecordButton {
+    0% {background-color: red;}
+    50% {background-color: yellow;}
+}
+.Recording {
+    animation: flashRecordButton linear 1s infinite;
+}
+
+.Connecting {
+  animation: flash linear 4s infinite;
+}
+.Connected {
+    animation: connectedFlash linear 4s infinite;
+}
+
+
+div.RRRecorder {
+    border: 5px solid black;
+    width: 350px;
+    margin: auto;
+    position: relative;
+    text-align: center;
+}
+#RRRecorder.direct {
+    display: none;
+}
+#RRRecorder.remote {
+    display: none;
+}
+#RRRecorder.link {
+    display: none;
+}
+#cartH1.remote {
+    display: none;
+}
+#cartH1.link 
+{ display: none; }
+#GuestConnection.remote {
+    display: none;
+}
+div.playButton {
+    width: 100px;
+    height: 100px;
+    background-image: url(../images/play.svg);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    display: inline-block;
+}
+#studioConnectionStatus {
+    font-family: Courier New, Courier, Monotype;
+}
+div.playButton:hover {
+    background-color: lightGrey;
+}
+div.stopButton {
+    width: 100px;
+    height: 100px;
+    background-image: url(../images/square.svg);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    display: inline-block;
+}
+div.stopButton:hover {
+    background-color: lightGrey;
+}
+div.stopButton:disabled {
+color: grey;
+}
+div.recordButton {
+    width: 100px;
+    height: 100px;
+    background-image: url(../images/circle.svg);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    display: inline-block;
+}
+span.RRRecorderHeader {
+    font-size: small;
+    font-weight: bold;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+div.transport {
+    margin: 0 auto;
+}
+div.centered {
+    text-align: center;
+}
+div.recordButton:hover {
+    background-color: salmon;
+}
+.Paused {
+    background-color: orange;
+}
+.Paused:hover {
+    background-color: tomato;
+}
+/*
+ * The link to download a recording
+ */
+#downloadLink {
+    text-align: center;
+    font-family: courier new, monotype;
+}
+#audioElement {
+    width: 90%;
+}
+.audioCanvas {
+    position: absolute;
+    background-color: yellow;
+    border: none;
+    margin: auto;
+    left: 2px;
+    /* position: fixed; */
+    /* display: inline; */
+    /* top: 26px; */
+    /* left: 0; */
+    z-index:3;
+}
+#audioCanvas.horizontal {
+
+}
+.Clipping {
+    background-color: red;
+}
+button.settingsButton, button#recordingSettingsButton {
+    background: transparent;
+    background-image: url(../images/settings.svg);
+    width: 30px;
+    height: 30px;
+    background-size: contain;
+    border: 0;
+    margin-right: 10px;
+    margin-top: 10px;
+    float: right;
+}
+button.settingsButton:hover {
+    opacity: 0.5;
+}
+
+div.RRPlayer {
+    width: 48%;
+    min-height: 100px;
+    background-color: silver;
+    background-image: url(../images/RPlayer.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    /* border:black 2px solid; */
+    border-radius: 5px;
+    display: inline-block;
+    padding: 5px;
+    margin: 5px;
+    font-family: courier new, courier, monotype;
+    font-size: 10pt;
+    cursor: pointer;
+    text-align: center;
+    /* word-wrap: break-word; */
+    background-color: silver;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+#connectURL {
+    width:  100px;
+}
+#Mic_1 {
+    background-image: url(../images/microphone.png);
+    background-position: bottom;
+    background-repeat: no-repeat;
+}
+#Mic_1.link {
+    width: 40%;
+}
+div#Microphones {
+    position: relative;
+    padding-top: 12px;
+}
+div.footer {
+    font-size: x-small;
+}
+p#links {
+
+}
+p#links .remote {
+    display:  none;
+}
+#studioConnection {
+    min-width: 90%;
+    /* border: 2px solid black; */
+    border-radius: 5px;
+    padding: 20px;
+    margin: auto;
+}
+#studioConnection .remote {
+    display:  none;
+}
+div.Microphone {
+    display: inline-block;
+   /* border: 2px solid black; */
+    border-radius: 5px;
+    width: 150px;
+    height: 164px;
+    padding: 0px;
+    margin: 0px;
+    background-color: lightGrey;
+    background-size: contain;
+    cursor: pointer;
+    position: relative;
+    /* background-image: url(../images/Feather-core-mic-off.svg);
+    background-size: contain;
+    background-repeat: no-repeat;
+    */
+}
+
+#songs.direct {
+    display: none;
+}
+#GuestConnection.direct {
+    display: none;
+}
+#cartH1.direct {
+    display: none;
+}
+#samplers.direct {
+    display: none;
+}
+#songs.interview {
+    display: none;
+}
+#GuestConnection.interview {
+}
+#cartH1.interview {
+    display: none;
+}
+#samplers.interview {
+    display: none;
+}
+#rrModeSwitch {
+    border-radius: 5px;
+    margin:  auto;
+}
+#rrModeSwitch.link {
+    display:  none;
+}
+.switch-toggle {
+   float: left;
+  /* background: lightsteelblue; */
+}
+.switch-toggle input {
+  position: absolute;
+  opacity: 0;
+}
+.switch-toggle input + label {
+  padding: 7px;
+  float:left;
+  color: #000;
+  cursor: pointer;
+}
+.switch-toggle input:checked + label {
+  background: green;
+  color:  #fff;
+  border-radius: 3px;
+}
+
+div#timerText {
+    position: fixed;
+    bottom: 0;
+    right: 50px;
+    width: 150px;
+    z-index: 50;
+    color: white;
+    text-shadow: 2px 2px 4px #000000;
+    opacity: 95%;
+}
+#timerText h2 {
+    font-family:  Courier New, Courier, monospace;
+    font-size:  25pt;
+ 
+}
+div#GuestConnection {
+    display: inline-block;
+    width: 100%;
+    height: 164px;
+    background-color: lightGrey;
+    background-size: contain;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='164px' width='100%'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>Guests...</text></svg>");
+
+}
+div.GuestConnection {
+        display: inline-block;
+   /* border: 2px solid black; */
+    border-radius: 5px;
+    width: 150px;
+    height: 164px;
+    padding: 0px;
+    margin-left: 5px;
+    background-color: lightGrey;
+    background-size: contain;
+    cursor: pointer;
+}
+div#GuestConnection .disconnected {
+    background-color:  silver;
+}
+div#GuestConnection .connecting {
+    background-color:  lightskyblue;
+}
+div#GuestConnection .connected {
+    background-color:  lightseagreen;
+}
+div#GuestConnection .remote {
+    display: none;
+}
+div#GuestConnection.link {
+ display:  none;
+}
+a#helpLink {
+    font-size: small;
+}
+div.MicSettings {
+    display: inline-block;
+   /* border: 2px solid black; */
+    width: 100px;
+    height: 100px;
+}
+input[type=range].MicSettings {
+    width: 100px;
+}
+#audioInputSelection {
+}
+div#songs {
+    min-width: 90%;
+    width: 100%;
+    margin: auto;
+    min-height: 96px;
+    white-space:nowrap;
+    overflow:ellipsis;
+    text-overflow: ellipsis;
+
+}
+div#songs .server  {
+    display: none;
+}
+.MicContainer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+div#songs audio {
+    display: none;
+}
+.RREjectButton {
+    /* position: relative; */
+    top: 50px;
+    width: 30px;
+    height: 20px;
+}
+.RR_reduction {
+  margin-top: 4px;
+  margin-bottom: 2px;
+  margin-right: 2px;
+/* width: 288px; */
+  height: 12px;
+  background: lightyellow;
+}
+div.RRSampler {
+    width: 14%;
+    min-height: 40px;
+    background-color: silver;
+    background-image: url(../images/RSampler.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    /* border:black 2px solid; */
+    border-radius: 5px;
+    display: inline-block;
+    padding: 5px;
+    margin: 5px;
+    font-family: courier new, courier, monotype;
+    font-size: 12pt;
+    cursor: pointer;
+    color: white;
+    text-align: center;
+    /* word-wrap: break-word; */
+    background-color: silver;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.RRPlayer {
+    color: white;
+    font-size: 16pt;
+}
+div.RRSampler:hover             { background-color: snow; }
+div.RRPlayer:hover          { background-color: snow; }
+div.RRSampler_loaded        { background-color:  blue; }
+div.RRSampler_loaded:hover  { background-color: lightblue; }
+div.RRSampler_playing       { background-color: green; }
+div.RRSampler_playing:hover     { background-color: lightgreen; }
+
+div.RRPlayer_ending { background-color: red; }
+div.RRPlayer_ending:hover { background-color: pink; }
+
+div.activeMic { background-color: green; opacity: 1; }
+div#crossfader_div {
+  width: 95%; /* Width of the outside container */
+  margin:auto;
+}
+
+/* The slider itself */
+#crossfader {
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 25px; /* Specified height */
+  background: #d3d3d3; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+  transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+#crossfader:hover {
+  opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+#crossfader::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #4CAF50; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+#crossfader::-moz-range-thumb {
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #4CAF50; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.RREjectButton {
+    background: url('https://api.iconify.design/fe-eject.svg') no-repeat center center / contain;
+}
+.RREjectButton:disabled {
+    opacity: 0.5;
+}
+
+img {
+    max-width: 99%;
+}
+h1#headerLogo {
+    background-image: url(../images/RemoteRadio-logo.svg);
+    background-position: right top; 
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+div#errorDiv {
+    background: black;
+    color: white;
+    font-family: Courier;
+    width: 80%;
+    margin: auto;
+    height: 100px;
+}
+
+img.logo {
+   display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+
+dialog form  { display: table;      }
+dialog p     { display: table-row; padding: 5px;  }
+dialog label { display: table-cell; text-align: right }
+dialog input { display: table-cell; }
+dialog hr    { width: 100%; -webkit-column-span: all; column-span:all; margin: auto; }
+dialog button { 
+    display: table-cell;
+    -webkit-column-span: all;
+    column-span: all;
+    float: right;
+}
+#samplers {
+    margin: auto;
+   /*  background-color: salmon; 
+    width: 95%; */
+}
+#RRSampler_3 {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>1</text></svg>");
+}
+#RRSampler_4 {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>2</text></svg>");
+}
+#RRSampler_5 {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>3</text></svg>");
+}
+#RRSampler_6 {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>4</text></svg>");
+}
+#RRSampler_7 {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>5</text></svg>");
+}
+#RRSampler_8 {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='120px' width='120px'><text x='4%' y='50%' fill='black' fill-opacity='0.25' font-family='Courier New, Courier, Monotype' font-size='80'>6</text></svg>");
+}
+#statusReport {
+    text-align: center;
+    margin: auto;
+    visibility: hidden;     /* Hidden by default. Visible on click */
+    min-width: 250px;       /* Set a default minimum width */
+    margin-left: -125px;    /* Divide value of min-width by 2 */
+    background-color: #333; /* Black background color */
+    color: #fff;            /* White text color */
+    text-align: center;     /* Centered text */
+    border-radius: 5px;     /* Rounded borders */
+    padding: 16px;          /* Padding */
+    position: fixed;        /* Sit on top of the screen */
+    z-index: 100000;             /* Add a z-index if needed */
+    left: 50%;              /* Center the snackbar */
+    bottom: 50px;           /* 30px from the bottom */
+
+    font-size: small;
+    font-weight: bold;
+}
+#presenters {
+    position: relative;
+}
+#statusReport.show {
+      visibility: visible; /* Show the snackbar */
+
+/* Add animation: Take 0.5 seconds to fade in and out the snackbar. 
+However, delay the fade out process for 2.5 seconds */
+    -webkit-animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+    animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+}
+/* Animations to fade the snackbar in and out */
+@-webkit-keyframes fadeinmove {
+    from {bottom: 0; opacity: 0;} 
+    to {bottom: 50px; opacity: 1;}
+}
+
+@keyframes fadeinmove {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 50px; opacity: 1;}
+}
+
+@-webkit-keyframes fadeoutmove {
+    from {bottom: 50px; opacity: 1;} 
+    to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeoutmove {
+    from {bottom: 50px; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+}
+
+#chatButton {
+        right: 110px;
+
+}
+.incomingText {
+    color:  red;
+}
+.outgoingText {
+    color:  white;
+}
+#chatWindowHeader {
+ padding: 10px;
+  cursor: move;
+  z-index: 10;
+  background-color: #2196F3;
+  color: #fff;
+}
+#chatWindow {
+    display: none;
+    position: absolute;
+    z-index:  9;
+}
+.talkingBack {
+    background-color: red;
+}
+#talkbackButton {
+    width:  100px;
+    height:  100px;
+    font-family:  Inconsolata, monospace;
+}
+button {
+    font-family:  Inconsolata, Lucida Console, Courier New, Courier, monospace;
+}
+#chatWindow.visible {
+    opacity:  90%;
+    text-align: center;
+    border:  5px double white;
+    color:  white;
+    color: white;
+    font: 1.0rem Inconsolata, monospace;
+    display:  block;
+    position:  absolute;
+    top:  100px;
+    left:  100px;
+    width:  500px;
+    height:  300px;
+    background-color: black;
+ }
+#chatDiv {
+    padding:  5px;
+    border:  1px solid #222222;
+    overflow-y:  scroll;
+    height:  200px;
+}
+/*
+ * Mobile browsing...
+ */
+@media only screen and (max-width: 600px) {
+  body {
+  }
+  div.RRPlayer {
+    width: 100%;
+    }
+}

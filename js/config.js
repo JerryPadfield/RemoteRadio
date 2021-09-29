@@ -4,34 +4,27 @@
 //
 //
 // Variables
-var bitrate = 128;  // streaming bitrate
-var defaultDevice = 0;
-var isStereo = true;
-var sampleSize = 16;
-var micMuted = false;
+const DEFAULT_CONFIG = {
+  bitrate: 128,               // streaming bitrate 
+  sampleSize: 16,             // not used...
+  micDeviceId: null,          // mic ID on local machine if already previously successfully selected
+  speakerDeviceId: null,      // ouput device (To be implemented...)
+  headphoneWarningShown: false, // whether we've notified end user about wearing headphones when monitoring mic
+  stereo: 1,
+  remoteStudioID: null,       // remember last remote studio ID
+};
 
-// load variables
-if (localStorage.bitrate) {
-  bitrate = localStorage.bitrate;
+var Config;
+// load default values is stored on local machine...
+if (localStorage.getItem("Config")!=null){
+  Config = JSON.parse(localStorage.getItem("Config"));
 }
-if (localStorage.defaultDevice) {
-    defaultDevice = localStorage.defaultDevice;
-}
-if (localStorage.isStereo){
-    isStereo = localStorage.isStereo;
-}
-if (localStorage.sampleSize){
-    sampleSize = localStorage.sampleSize;
-}
-if (localStorage.micMuted){
-    sampleSize = localStorage.sampleSize;
+else {
+  Config = DEFAULT_CONFIG;
+  saveStorage();
 }
 
 // called to save the variables
 function saveStorage() {
-  localStorage.bitrate = bitrate;
-  localStorage.defaultDevice = defaultDevice;
-  localStorage.isStereo = isStereo;
-  localStorage.sampleSize = sampleSize;
-  localStorage.micMuted = micMuted;
+	localStorage.setItem("Config", JSON.stringify(Config));
 }

@@ -1,0 +1,259 @@
+div {
+    display: inline;
+}
+audio { width: 200px; }
+input, textarea {
+    border: 4px solid rgba(0,0,0,0.1);
+    padding: 8px 10px;
+    margin: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+
+    outline: 0;
+}
+#uploading {
+  visibility: hidden;
+    text-align: center;
+    border-radius: 5px; /* Rounded borders */
+    position: fixed; /* Sit on top of the screen */
+    padding: 16px; /* Padding */
+    min-width: 250px; /* Set a default minimum width */
+    z-index: 1; /* Add a z-index if needed */
+    margin-left: -125px; /* Divide value of min-width by 2 */
+    left: 50%; /* Center the snackbar */
+    top: 50%;
+    min-height: 250px;
+    margin-top: -125px;
+}
+#uploading.show {
+    visibility: visible;
+}
+#progress {
+	text-align: center;
+	margin: auto;
+    visibility: hidden; /* Hidden by default. Visible on click */
+    min-width: 250px; /* Set a default minimum width */
+    margin-left: -125px; /* Divide value of min-width by 2 */
+    background-color: #333; /* Black background color */
+    color: #fff; /* White text color */
+    text-align: center; /* Centered text */
+    border-radius: 5px; /* Rounded borders */
+    padding: 16px; /* Padding */
+    position: fixed; /* Sit on top of the screen */
+    z-index: 1; /* Add a z-index if needed */
+    left: 50%; /* Center the snackbar */
+    bottom: 50%; /* 30px from the bottom */
+}
+#progress.show {
+    visibility: visible; /* Show the snackbar */
+
+/* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+However, delay the fade out process for 2.5 seconds */
+    -webkit-animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+    animation: fadeinmove 0.5s, fadeoutmove 0.5s 2.5s;
+}
+/* Animations to fade the snackbar in and out */
+@-webkit-keyframes fadeinmove {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 50%; opacity: 1;}
+}
+
+@keyframes fadeinmove {
+    from {bottom: 0; opacity: 0;}
+    to {bottom: 50%; opacity: 1;}
+}
+
+@-webkit-keyframes fadeoutmove {
+    from {bottom: 50%; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeoutmove {
+    from {bottom: 50%; opacity: 1;}
+    to {bottom: 0; opacity: 0;}
+}
+#success {
+  padding: 20px;
+ text-align: center;
+	margin: auto;
+	display: none;
+	position: fixed; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 25%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+ /*   background-color: rgba(0,0,0,0.5); */ /* Black background with opacity */
+    z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+    /* cursor: pointer;  Add a pointer on hover */
+}
+#switchLink {
+    font-size: smaller;
+}
+#errorDiv {
+	color:red;
+}
+.loader {
+    display: block;
+    border: 32px solid #f3f3f3; /* Light grey */
+    border-top: 32px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    animation: spin 2s linear infinite;
+    margin:auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#GUI {
+/*	visibility: hidden;
+  transition: opacity 2s linear;
+	opacity: 0;
+    */
+    display: none;
+}
+#failDiv {
+/*  width: 80%;
+  left: 50%;
+  top: 50%;
+  position: fixed;
+  -webkit-transform: translateX(-50%) translateY(-50%);
+  -moz-transform: translateX(-50%) translateY(-50%);
+  -ms-transform: translateX(-50%) translateY(-50%);
+  transform: translateX(-50%) translateY(-50%);
+  */
+  padding: 20px;
+  border-radius: 10px;
+  /* text-align: center;
+/*  transition: visibility 0s linear 0.0s, opacity 0.0s linear;
+  opacity: 1;
+  */
+}
+#recordButton, #submitButton {
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+#submitButton {
+  fill: green;
+}
+#submitButton:hover {
+  fill: rgb(20, 200, 20);
+}
+#recordButton:active {
+  background-color: silver;
+}
+#stopButton {
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+#stopButton:disabled {
+}
+#downloadButton {
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+#downloadButton:disabled {
+  fill: silver;
+}
+#playButton {
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+#playButtonSVG {
+    width: 100px;
+    height: 100px;
+}
+#playButtonSVG:hover {
+  fill: silver;
+}
+#dbSVG {
+    width: 100px;
+    height: 100px;
+}
+#Capa_1 {
+    fill: red;
+    width: 100px;
+    height: 100px;
+}
+#Capa_2 {
+  fill: silver;
+  width: 100px;
+  height: 100px;
+}
+#Capa_1:hover {
+  fill: rgb(255, 128, 128);
+}
+body {
+  font-family: Calibri, Verdana, Sans;
+}
+.red-text {
+  color: red;
+}
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Firefox < 16 */
+@-moz-keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Safari, Chrome and Opera > 12.1 */
+@-webkit-keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+#audioControls {
+   text-align: center;
+}
+fieldset {
+ /* display: inline; */
+  border-radius: 10px; /* 20%/100%; */
+  border: 4px solid rgba(0,0,0,0.1);
+  padding: 20px;
+}
+.clearAll {
+	clear: both;
+}
+#details {
+ 	text-align: center;
+	margin: auto;
+
+}
+#upload {
+	text-align:center;
+	margin:auto;
+}
+#submit {
+	text-align:center;
+}
+#formDiv {
+ text-align: center;
+
+}
+form#form {
+
+/*  display: inline-block;
+  text-align: center;
+  margin: auto;
+  */
+}
+#forminner {
+ /* margin: auto; */
+}
+#switchlink2 {
+    /* visibility: hidden;
+    */
+    font-size: smaller;
+}

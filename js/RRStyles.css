@@ -1,0 +1,143 @@
+body, p div {
+font-family: arial;
+}
+h1, h2, h3 {
+font-family: courier;
+}
+
+div.RRRecorder {
+	border: 5px solid black;
+	width: 320px;
+}
+div.playButton {
+	width: 100px;
+	height: 100px;
+	background-image: url(../images/play.svg);
+	background-repeat: no-repeat;
+	background-size: 100%;
+	display: inline-block;
+}
+div.playButton:hover {
+	background-color: lightGrey;
+}
+div.stopButton {
+	width: 100px;
+	height: 100px;
+	background-image: url(../images/square.svg);
+	background-repeat: no-repeat;
+	background-size: 100%;
+	display: inline-block;
+}
+div.stopButton:hover {
+	background-color: lightGrey;
+}
+div.stopButton:disabled {
+color: grey;
+}
+div.recordButton {
+	width: 100px;
+	height: 100px;
+	background-image: url(../images/circle.svg);
+	background-repeat: no-repeat;
+	background-size: 100%;
+	display: inline-block;
+}
+div.recordButton:hover {
+	background-color: salmon;
+}
+#downloadLink {
+	text-align: center;
+	font-family: courier new, monotype;
+}
+#audioElement {
+	width: 100%;
+}
+#audioCanvas {
+	background-color: black;
+	border: 2px solid blue;
+	margin-left: 10px;
+	margin: top: 5px;
+}
+button.settingsButton {
+	background-color: white;
+	background-image: url(../images/settings.svg);
+	width: 20px;
+	height: 20px;
+	background-size: contain;
+	border: 0;
+	right: 10px;
+	float: right;
+}
+button#settingsButton:hover {
+	opacity: 0.5;
+}
+
+div.RRPlayer {
+	width: 24%;
+	height: 100px;
+	background-color: silver;
+	background-image: url(../images/RPlayer.png);
+	background-size: contain;
+	background-repeat: no-repeat;
+	border:black 2px solid;
+	border-radius: 5px;
+	display: inline-block;
+	padding: 3px;
+	font-family: courier new, courier, monotype;
+	font-size: 10pt;
+	cursor: pointer;
+	text-align: center;
+	/* word-wrap: break-word; */
+	background-color: silver;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+div#Microphones {
+  padding-top: 12px;
+}
+#studioConnection {
+	width: 90%;
+	border: 2px solid black;
+	border-radius: 5px;
+	padding: 10px;
+	margin: auto;
+}
+div.Microphone {
+  border: 2px solid black;
+  width: 100px;
+  height: 100px;
+  background-image: url(../images/microphone.png);
+  background-size: contain;
+}
+div.RRPlayer:hover 			{ background-color: snow; }
+div.RRPlayer_loaded 		{ background-color:  blue; }
+div.RRPlayer_loaded:hover 	{ background-color: lightblue; }
+div.RRPlayer_playing 		{ background-color: green; }
+div.RRPlayer_playing:hover 	{ background-color: lightgreen; }
+
+div#main {
+	width: 100%;
+	margin: auto;
+	height: 106px;
+	white-space:nowrap;
+    overflow:ellipsis;
+    text-overflow: ellipsis;
+
+}
+div#main audio {
+	display: none;
+}
+.RREjectButton {
+	/* position: relative; */
+	top: 50px;
+	width: 30px;
+	height: 20px;
+}
+.RR_reduction {
+  margin-top: 4px;
+  margin-bottom: 2px;
+  width: 288px;
+  height: 12px;
+  background: green;
+}

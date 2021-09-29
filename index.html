@@ -1,185 +1,231 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en">
 <head>
-	<meta charset="utf-8"/>
-	<!--
-	    Remote Radio - an Open Source Peer to Peer streaming solution, primarily
-	    aimed at Community Radio stations.
-	    maintained at: https://github.com/JerryPadfield/Remote-Radio
-	 -->
-	<title>Remote Radio - peer to peer audio streaming software</title>
-	<script src="js/peer.js"></script>
-	<script src="js/config.js"></script>
-	<script src="js/RemoteRadio.js"></script>
-	<script src="js/volume-meter.js"></script> <!-- audio meter -->
-	<link rel="stylesheet" href="css/RemoteRadio.css" type="text/css" />
+    <meta charset="utf-8" />
+    <script src="js/config.js"></script>
+   <!-- <script language="javascript" src="js/peer.js"></script> -->
+   <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+    <script src="js/RRVolumeMeter.js"></script>
+    <script src="js/RRLimiter.js"></script>
+    <script src="js/Recorder.js"></script>
+    <script src="js/Player.js"></script>
+    <script src="js/RRMicrophone.js"></script>
+    <script src="js/RRRemoteConnection.js"></script>
+    <script src="js/RRCrossfader.js"></script>
+    <script src="js/RemoteRadio.js"></script>
+    <script src="js/dialog-polyfill.js"></script>
+    <link rel="stylesheet" href="css/RRStyles.css" type="text/css" />
+    <link rel="stylesheet" href="css/dialog-polyfill.css" type="text/css" />
+    <title>Remote Radio</title>
+      <script language="javascript">
+		  // fix dialog in Firefox...
+		  window.addEventListener("load", function() {
+        var dialogs = document.querySelectorAll('dialog');
+        dialogs.forEach(function(dialog) { dialogPolyfill.registerDialog(dialog); });
+      });
+      </script>
 </head>
 <body>
-<!-- header -->
-<div id="headerDiv">
-	<h1 id="logo">Remote Radio</h1>
-	<div id="browserInfoDiv" title="This displays the capabilities of your browser"> &nbsp; </div>
-	<div id="errorReportDiv" title="Errors reported"> &nbsp; </div>
-	<div id="statusReportDiv"> &nbsp; </div>
-	<p id="helplink"><a target="_blank" title="Get help using Remote Radio (opens in new window)" href="help.html">Help</a></p>
+<div id="header">
+<h1 id="headerLogo">Remote Radio</h1>
 </div>
-<!-- main content -->
-<div class="row" id="content">
-<!-- button to save configuration -->
-	<div class="column" id="InputDiv">
-		<p class="header">Send</p>
-		<img width="50" height="50" alt="microphone" title="Enables and disables microphone input" src="images/Feather-core-mic.svg" id="MicImg" />
-		<!-- <audio id="audioLocalDevice"></audio> -->
-			<!-- The canvas that will be used to render the input level -->
-			<!-- <canvas title="Recording levels for the input device (stay out of the red)" id="audioMeterLocal" width="500" height="50"></canvas> -->
-		<div title="List of capable input devices" id="MediaInputDevicesList">
-			<label for="inputSelect">Input Device: </label>
-			<select id="inputSelect">
-				<option>Loading devices...</option>
-			</select>
-		</div>
-		<div title="Current bitrate (higher=better quality but more bandwidth)" id="Bitrate"> Bitrate: </div>
-		<div class="slidecontainer">
-			<input type="range" min="32" max="320" step="32" value="128" class="slider2" id="brSlider" onchange="bitrateChange()" />
-		</div>
-		<!-- Rounded switch -->
-		<div>
-		Stereo: <label class="switch">
-  			<input type="checkbox" id="stereoMono" />
-  			<span class="slider round"></span>
-		</label>
-		<p id="save_button"><button title="Saves the current audio configuration in this browser" onclick="saveConfig()">Save Config</button></p>
-		</div>
-	</div>
-	<div class="column" id="OutputDiv">
-		<p class="header">Receive</p>
-		<img alt="speaker" alt="Output" width="50" height="50" src="images/speaker.svg" id="SpeakerImg" />
-			<canvas title="audio levels for incoming audio stream" id="audioMeter" width="500" height="50"></canvas>
-			<audio controls id="audioIncomingStream"></audio>
-			<!-- The canvas that will be used to render the input level -->
-		<div id="MediaOutputDevicesList">
-			Devices:
-			<select id="outputSelect" disabled>
-				<option>Loading devices...</option>
-			</select>
-		</div>
-		<div id="PeerID">My peer ID is: Loading... </div>
-		<div>Connected Peers:
-		<ul title="list of currently connected peers" id="connectedPeersList">
-			<li>No connections</li>
-		</ul>
-		</div>
-		<div id="ConnectDiv">
-			<label for="peerInputText">Connect to id: </label><input type="text" title="Add the id of a peer that you would like to connect to here" id="peerInputText" /><button id="peerInputButton">Connect</button>
-			<div id="inviteDiv">
-				<label for="connectionLinkText">Connection Link (click to copy to clipboard): </label><input type="text" title="Send this link to someone you would like to connect to" id="connectionLinkText" readonly /><br />
-				<label for="emailText">Invite peer via Email: </label><input type="text" id="emailText" />
-				<button id="sendInviteButton">Send Invite</button>
-			</div>
-		</div>
-		<div id="chatbox">
-			<p>Chat</p>
-			<div id="chatDiv"> &nbsp;</div>
-			<textarea id="chatInputText"></textarea><button id="chatInputButton">Send</button>
-			<div id="callDiv"><input type="checkbox" id="twoWayCall">Send Audio?</input>
-				<!-- <button id="callButton">Call</button> -->
-				<input type="image" src="images/phone.svg" id="callButton" width="50" height="50" border="0" disabled alt="Call" />
-			</div>
-		</div>
-	</div>
-	<div class="column2" id="Mixer">
-		<p class="header">Recorder</p>
-		<div>
-<!--			<button id="recordButton">Record</button>
-			<button id="stopButton">Stop</button> -->
-			<img height="50" width="50" src="images/circle.svg" title="start recording" alt="start recording" id="recordButton" />
-			<img height="50" width="50" src="images/square.svg" alt="stop" title="stop recording" id="stopButton" />
-
-			<a id="downloadLink">Download...</a></div>
-		<div class="fader"></div>
-	</div>
-</div> <!-- row -->
-<div id="loading"><!-- Shown until audio is enabled or in an incapable browser -->
-	<h1>Please allow access to your audio...</h1>
-    <img src="images/RemoteRadio-logo.svg" />
-	<p>You may be seeing this because you have not enabled access to your
-	audio device or because your browser is not capable.
-	This application only works in a modern, standard-compliant browser which implements WebRTC, such as
-	<a href="https://www.google.com/chrome/" target="_blank">Chrome</a>, <a href="https://www.mozilla.org/en-GB/firefox/new/" target="_blank">Firefox</a> or <a href="https://www.opera.com/download" target="_blank">Opera</a>...</p>
+<form id="rrModeSwitch" class="switch-toggle switch-3 switch-candy">
+ <fieldset>
+  <legend>Mode:</legend>
+   <input checked="checked" id="studio" name="rr-mode" type = "radio" title="Enter studio mode" />
+    <label for="studio">Studio</label>
+  <input id="interview" name="rr-mode" type="radio" title="Enter call-in/interview mode" />
+    <label for="interview">Call-In</label>
+  <input id="direct" name="rr-mode" type="radio" title="Enter direct link mode" />
+    <label for="direct">OB</label>
+  </fieldset>
+  <a href="help.html" id="helpLink" target="_blank" title="Open the help documentation in a new window">Help</a>
+</form>
+<br clear = all />
+  <div id="statusReport"> &nbsp; </div>
+<div id="notSupported">
+	<h2>Remote Radio is starting...</h2>
+  <img class="logo" src="images/RemoteRadio-logo.svg" />
+  <p>If you still see this text after a few seconds it may be that your browser does not support Web Audio and WebRTC. We recommend 
+    using a modern, update browser with Javascript enabled such as Chromium, Firefox, Opera or Edge, all of which work with Remote Radio.
+  </p>
+	<div id="badBrowser">
+	<p>Remote Radio requires a modern browser which implements technologies such as Web Audio, WebRTC,
+	and MediaRecorder. You can continue anyway by closing this dialog, but results may vary...
+	</p><button id="riskyClick">OK</button></div>
 </div>
-<div id="main_menu">
 
-    <div id="launchP2PStudioDiv">
-        <h2>Studio Mode</h2>
-        <img src="images/RemoteRadio-logo.svg" height="150" />
-        <p>Broadcast to a studio</p>
-    </div>
-<p></p>
+<!-- the main content - gets hidden until we detect a modern browser -->
+<div id="RemoteRadio" class="disabledRR">
+	
+<!-- display current connection to the studio status - edit config.js for your studio -->
+<div id="studioConnection">
+  <div>Server Connection Status: <span id="studioConnectionStatus">Not Connected</span>
+ |  <button value="Connect" disabled id="connectButton">Connect</button>
+    <button value="Chat" disabled id="chatButton">Chat</button>
+    <button value="Settings" class="settingsButton" id="connectionSettingsButton" title="change server settings (advanced)"></button>
+  </div>
+  <dialog id="settingsDialog">
+     <h2>Connection Settings</h2>
+     <p>Server connection settings. Do not edit unless you are sure what you are doing...</p>
+     <br />
+     <form method="dialog">
+        <p><label for="peerText">Peer ID: </label>
+          <input type="text" id="peerText" />
+        <p><label for="serverText">Server: </label> 
+        <input type="text" id="serverText" />
+      </p>
+      <br />
+      <hr />
+      <h3>Bitrate:</h3><p>
+        <input type="radio" id="low" name="bitrate" value="low">
+        <label for="low">Low</label>
+        <input type="radio" id="medium" name="bitrate" value="medium">
+        <label for="medium">Medium</label>
+        <input type="radio" id="high" name="bitrate" value="high">
+        <label for="high">High</label>
 
-    <div id="launchCallInDiv">
-        <h2>Call-In Mode</h2>
-        <img src="images/phone-call.svg" height="130" width="130" />
-        <p>Allow listeners to call in</p>
-
-    </div>
+      </p>
+      <br />
+        <button id="settingsDialogButton" value="default">OK</button>
+    </form>
+ </dialog>
 </div>
-<!---- New Implementation --->
-<!-- Call in mode -->
-<div id="CallInDiv">
-    <div id="callInHeaderDiv"><img src="images/phone-call.svg" height="150" width="150">
-        <p id="StudioLogo">CALL-IN MODE</p></div>
-           <p></p>
-           <div id="callListDiv">
-                <div class="callerDiv">John <div class="close">X V</div></div>
-                <p></p>
-                <div class="callerDiv">Jane <div class="close">X V</div></div>
-                <p></p>
-                <div class="callerDiv">Anne <div class="close">X V</div></div>
-                <p></p>
-                <div class="callerDiv">Humphrey <div class="close">X V</div></div>
-                <p></p>
 
-           </div>
-   <p></p>
+<!-- metering for output to stream and recorder -->
+<div id="meter">
+ <button value="Settings" class="settingsButton" id="outputSettingsButton" title="Change output settings for local sound"></button>
+ <dialog id="outputSettingsDialog">
+     <h2>Output Settings</h2>
+     <form method="dialog">
+      <p>
+        <label id="outputLabel" for="speakerSelect">Output to: </label> 
+        <select title="Input devices on this device" id="speakerSelect">
+        </select>
+      </p>
+      <br />
+        <button id="outputSettingsDialogButton" value="default">OK</button>
+    </form>
+ </dialog>
+</div>
+<!-- /meter -->
 
-      <a href="javascript:backToMenu()">Back</a>
+<div id="songs" title="Keys: Left deck - A to load/play, Q to eject, Right deck - L to load/play, P to eject">
+<h1>Songs</h1>
+<div title="Crossfade between the two decks (double click to reset). Keys: right and left arrow keys" id="crossfader_div">
+  <input id="crossfader" type="range" min="-30" max="30" value="0" /></div>
+</div>
+
+<div id="limiters"></div>
+
+<div id="presenters">
+	<div title="Microphone inputs and remote guests" id="Microphones"> 
+		<div title="Click to mute/unmute, green = live. Keys: M to mute/unmute" class="Microphone" id="Mic_1">
     </div>
-
-<!-- Main mode -->
-<div id = "P2PStudioDiv">
-    <div id="studioHeaderDiv"><img id="RemoteRadioLogo" src="images/RemoteRadio-logo.svg">
-        <p id="StudioLogo">STUDIO MODE</p></div>
-    <p></p>
-    <p></p>
-    
-
-    <div id="onAirDiv"><span id="onAirText">OFF AIR</span><audio id="audioLocalDevice"></audio>
-            <!-- The canvas that will be used to render the input level -->
-            <canvas title="Recording levels for the input device (stay out of the red)" id="audioMeterLocal" width="500" height="50"></canvas>
-        </div>
-   <p></p>
-    <p></p>
-    <p></p>
-    <p></p>
-    <div id="recordDiv">
-        <table align="center">
-            <tr><td>
-            <img height="50" width="50" src="images/circle.svg" title="start recording" alt="start recording" id="recordButton" />
-        </td><td>
-            <img height="50" width="50" src="images/square.svg" alt="stop" title="stop recording" id="stopButton" />
-</td></tr>
-<tr><td>Record</td><td>Stop</td></tr></table>
-<a href="javascript:backToMenu()">Back</a>
-    </div>
+  <dialog id="micSettingsDialog">
+    <h2>Choose Microphone Input</h2>
+    <form method="dialog">
+      <p>
+    <select title="Audio inputs on this device" id="audioInputSelection"></select>
+  </p>
+  <p>
+    <br />
+    <button value="Cancel">Cancel</button>
+  </p>
+  </form>
+  </dialog>
  </div>
+  <div id="GuestConnection">  <button value="PeerSettings" class="settingsButton" id="guestSettingsButton" title="Invite guests"></button>
+<dialog id="guestSettingsDialog">
+     <h2>Guest Settings</h2>
+     <form method="dialog">
+      <p>
+        <label id="outputLabel" for="speakerSelect">Send invite to: </label> 
+        <input type="text" id="guestText" />
+        <div id="connectURL">&nbsp;</div>
+      </p>
+      <br />
+        <button id="guestSettingsDialogButton" value="default">OK</button>
+    </form>
+ </dialog></div>
+<button id="talkbackButton" value="talkback">Talkback</button>
+  </div>
+
+<!-- array of RRSamplers -->
+<h1 id="cartH1">Carts</h1>
+<div title="Carts to play jingles or other sounds" id="samplers"></div>
+<!-- /Carts -->
+<dialog id="recordingSettingsDialog">
+     <h2>Recording Settings</h2>
+     <p>Change the name of the recorded file (default is a random name).
+     </p>
+     <br />
+     <form method="dialog">
+      <p>
+        <label for="recordingTitle">Title: </label> 
+        <input type="text" id="recordingTitle" />
+      </p>
+      <p>
+        <label for="addDateToRecordingCheckbox">Add date to end of title: </label>
+        <input type="checkbox" id="addDateToRecordingCheckbox" />
+        </p>
+      <hr />
+      <br />
+        <h3>Advanced Settings</h3>
+      <p>
+        <label for="recordMode">Record Mode: </label>
+        <select id="recordMode">
+          <option>Record mix to stereo (default)</option>
+          <option>Record multitrack</option>
+        </select>
+      </p>
+      <p>
+        <label for="audioFormats">Audio format</label>
+        <select id="audioFormats"></select>
+        </p>
+        <br />
+        <button id="recordingSettingsDialogButton" value="default">OK</button>
+    </form>
+ </dialog>
+<div class="RRRecorder" id="RRRecorder"><span class="RRRecorderHeader">Remote Radio Recorder</span>
+<!-- <canvas title="Recording levels for the input device (stay out of the red)" id="audioCanvas" width="300" height="50"></canvas> -->
+<button value="Settings" class="settingsButton" id="recordingSettingsButton" title="Change recording settings..."></button>
+
+<br />
+
+<!-- RRRecorder -->
+<div class="transport">
+  <div class="recordButton" title="Click to record (red), click again to pause (orange)" id="recordButton"></div>
+  <div class="stopButton" title="Stop recording" id="stopButton"></div>
+  <div class="playButton" title="Play back recording (if available)" id="playButton"></div>
+</div>
+<div class="centered"><a title="Recording will become available to download here" id="downloadLink">Download</a>
+<audio id="audioElement"></audio></div>
+</div>
+<!-- /RRRecorder -->
+
 <hr />
-<div id="footer">
-Remote Radio is released under the
-<a target="_blank" href="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons 4.0 Non-Commercial License</a>.
+<!-- <div id="errorDiv"></div> -->
+<!-- div to hold the timer text, appears in bottom left corner when recording -->
+<div title="Time since recording started" id="timerText"></div>
+<!-- div for chat window -->
+<div id="chatWindow">
+  <div id="chatWindowHeader">Chat Window</div>
+  <br />
+  <input id="chatToSendText" type = "text" width=100 height=50 />
+  <button id="chatSend" value="Send">Send</button>
+  <button id="chatClose" value="Close">Close</button>
+  <br />
+  <div id="chatDiv"></div>
+</div>
+<!-- RemoteRadio -->
+</div>
+<div class="footer">
+   <p> Remote Radio is released under the
+<a target="_blank" href="https://choosealicense.com/licenses/mit/">MIT License</a>.
  It uses <a target="_blank" href="http://peerjs.com/">Peer.js</a>.
-  Volume meter from <a href="https://github.com/cwilso/volume-meter/blob/master/volume-meter.js" target="_blank">Chris Wilson</a>
-   under MIT license.
-    Images are from <a target="_blank" href="https://feathericons.com/">Feather icons</a>. Visit its <a target="_blank" href="https://github.com/JerryPadfield/Remote-Radio">home on Github</a>.
+  Parts of volume meter adapted from code by <a href="https://github.com/cwilso/volume-meter/blob/master/volume-meter.js" target="_blank">Chris Wilson</a> under MIT license.
+    Images are from <a target="_blank" href="https://feathericons.com/">Feather icons</a> (MIT license) - some adapted. Visit Remote Radio <a target="_blank" href="https://github.com/JerryPadfield/RemoteRadio">home on Github</a>. </p>
 </div>
 </body>
 </html>
